@@ -1,0 +1,42 @@
+[
+  {
+    "title": "Romantyzm — matura z polskiego",
+    "description": "Epoka romantyzmu: autorzy, dzieła, pojęcia, konteksty historyczne",
+    "lexicon": [
+      { "term": "romantyzm", "definition": "Prąd kulturowy przełomu XVIII i XIX w. stawiający uczucie, intuicję i wyobraźnię ponad rozum", "forms": ["romantyzmu", "romantyczny", "romantyzmie"], "category": "epoka" },
+      { "term": "bajronizm", "definition": "Postawa bohatera zbuntowanego, samotnego, skłóconego ze światem — wzorowana na postaciach Byrona", "forms": ["bajroniczny", "bajronizmu"], "category": "epoka" },
+      { "term": "prometeizm", "definition": "Postawa poświęcenia się jednostki dla dobra ogółu, bunt przeciw niesprawiedliwości boskiej lub ludzkiej", "forms": ["prometejski", "prometeizmu"], "category": "epoka" },
+      { "term": "mesjanizm", "definition": "Wiara, że naród polski cierpi za grzechy innych narodów i przez to cierpienie je zbawi", "forms": ["mesjanistyczny", "mesjanizmu"], "category": "epoka" },
+      { "term": "wallenrodyzm", "definition": "Postawa walki podstępnej z wrogiem od wewnątrz, gdy jawna walka jest niemożliwa", "forms": ["wallenrodyczny"], "category": "epoka" },
+
+      { "term": "Adam Mickiewicz", "definition": "Najważniejszy poeta polskiego romantyzmu, autor Dziadów i Pana Tadeusza", "forms": ["Mickiewicza", "Mickiewiczowi"], "category": "autorzy" },
+      { "term": "Juliusz Słowacki", "definition": "Poeta romantyczny, autor Kordiana, Balladyny i Beniowskiego — rywal Mickiewicza", "forms": ["Słowackiego", "Słowackiemu"], "category": "autorzy" },
+      { "term": "Zygmunt Krasiński", "definition": "Trzeci wieszcz, autor Nie-Boskiej komedii i Irydiona, poeta arystokratyczny", "forms": ["Krasińskiego"], "category": "autorzy" },
+      { "term": "Cyprian Kamil Norwid", "definition": "Czwarty wieszcz, niedoceniony za życia, autor Vade-mecum i Promethidiona", "forms": ["Norwida", "Norwidowi"], "category": "autorzy" },
+
+      { "term": "Dziady cz. III", "definition": "Dramat Mickiewicza — wizja cierpienia narodu, scena Wielkiej Improwizacji, prometeizm i mesjanizm", "forms": ["Dziadów"], "category": "dzieła" },
+      { "term": "Pan Tadeusz", "definition": "Epopeja narodowa Mickiewicza — obraz szlachty litewskiej, ostatni zajazd, miłość i patriotyzm", "forms": ["Pana Tadeusza"], "category": "dzieła" },
+      { "term": "Konrad Wallenrod", "definition": "Powieść poetycka Mickiewicza — Litwin walczący z Krzyżakami podstępem, wallenrodyzm", "forms": ["Wallenroda"], "category": "dzieła" },
+      { "term": "Kordian", "definition": "Dramat Słowackiego — samotny bohater próbuje zabić cara, ponosi klęskę, polemika z Dziadami", "forms": ["Kordiana"], "category": "dzieła" },
+      { "term": "Balladyna", "definition": "Tragedia Słowackiego — zbrodnia siostrobójstwa, baśniowość i groteska, krytyka władzy", "forms": ["Balladyny", "Balladynie"], "category": "dzieła" },
+      { "term": "Nie-Boska komedia", "definition": "Dramat Krasińskiego — konflikt arystokracji z rewolucją, wizja apokalipsy społecznej", "category": "dzieła" },
+
+      { "term": "Wielka Improwizacja", "definition": "Monolog Konrada z III cz. Dziadów — bunt przeciw Bogu, żądanie władzy nad duszami narodu", "forms": ["Wielkiej Improwizacji"], "category": "motywy" },
+      { "term": "ballada", "definition": "Gatunek łączący lirykę, epikę i dramat — ludowość, tajemniczość, morał", "forms": ["ballady", "balladowy"], "category": "motywy" },
+      { "term": "ludowość", "definition": "Zainteresowanie kulturą ludu — wierzenia, obrzędy, język — jako źródło prawdy i autentyczności", "forms": ["ludowy", "ludowości"], "category": "motywy" },
+      { "term": "natura", "definition": "W romantyzmie: żywa siła, lustro uczuć bohatera, przestrzeń tajemnicy i wolności", "forms": ["natury", "naturze"], "category": "motywy" },
+
+      { "term": "powstanie listopadowe", "definition": "Zryw niepodległościowy 1830–1831 przeciw Rosji — klęska, Wielka Emigracja", "forms": ["powstania listopadowego"], "category": "historia" },
+      { "term": "Wielka Emigracja", "definition": "Emigracja polskiej elity po powstaniu listopadowym — Paryż centrum życia politycznego i kulturalnego", "forms": ["Wielkiej Emigracji"], "category": "historia" },
+      { "term": "filomaci", "definition": "Tajne stowarzyszenie studentów wileńskich (1817–1823) — Mickiewicz, Zan — patriotyzm i samokształcenie", "forms": ["filomatów", "filomacki"], "category": "historia" }
+    ],
+    "quiz": [
+      { "question": "Który wieszcz był autorem Wielkiej Improwizacji?", "answer": "Adam Mickiewicz (Dziady cz. III)", "hint": "Monolog Konrada" },
+      { "question": "Czym różni się prometeizm od wallenrodyzmu?", "answer": "Prometeizm to jawne poświęcenie dla ogółu, wallenrodyzm to walka podstępem od wewnątrz", "hint": "Dwie postawy wobec wroga" },
+      { "question": "Który dramat Słowackiego jest polemiką z Dziadami?", "answer": "Kordian — samotny bohater vs. zbiorowy mesjanizm", "hint": "Premiera w tym samym roku co Dziady cz. III" },
+      { "question": "Co symbolizuje zajazd w Panu Tadeuszu?", "answer": "Ostatni akt szlacheckiej tradycji i nadzieję na odzyskanie niepodległości (nadejście Napoleona)", "hint": "Finał epopei" },
+      { "question": "Kim byli filomaci?", "answer": "Tajne stowarzyszenie studentów w Wilnie (1817–1823), do którego należał m.in. Mickiewicz", "hint": "Nazwa od gr. 'miłośnik wiedzy'" },
+      { "question": "Jaki jest główny konflikt Nie-Boskiej komedii?", "answer": "Starcie arystokracji (hrabia Henryk) z rewolucją (Pankracy) — oba obozy są moralnie skompromitowane", "hint": "Dramat Krasińskiego" }
+    ]
+  }
+]

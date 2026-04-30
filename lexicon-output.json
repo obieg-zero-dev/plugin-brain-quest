@@ -1,0 +1,776 @@
+[
+  {
+    "type": "lexicon",
+    "data": {
+      "term": "ironia tragiczna",
+      "definition": "Sytuacja, w której widz zna prawdę ukrytą przed bohaterem — np. Edyp szuka mordercy, nie wiedząc, że to on sam. Kluczowy chwyt tragedii antycznej.",
+      "forms": "[\"ironii tragicznej\", \"ironią tragiczną\", \"ironię tragiczną\"]",
+      "category": "epoki"
+    }
+  },
+  {
+    "type": "lexicon",
+    "data": {
+      "term": "tragedia",
+      "definition": "Gatunek dramatyczny powstały w starożytnej Grecji, naśladujący działanie poważne, które przez litość i trwogę prowadzi do katharsis (oczyszczenia emocji).",
+      "forms": "[\"tragedii\", \"tragedię\", \"tragiczny\", \"tragiczna\"]",
+      "category": "epoki"
+    }
+  },
+  {
+    "type": "lexicon",
+    "data": {
+      "term": "komedia",
+      "definition": "Gatunek dramatyczny antyczny, przedstawiający działanie śmieszne i codzienne, w kontraście do tragedii. Twórcą komedii antycznej był Arystofanes.",
+      "forms": "[\"komedii\", \"komedię\", \"komediowy\"]",
+      "category": "epoki"
+    }
+  },
+  {
+    "type": "lexicon",
+    "data": {
+      "term": "epos",
+      "definition": "Rozbudowany utwór narracyjny wierszem, opowiadający o losach bohaterów na tle przełomowych wydarzeń. Konwencje: inwokacja, in medias res, narrator wszechwiedzący, stałe epitety.",
+      "forms": "[\"eposu\", \"eposem\", \"epopeja\", \"epopei\"]",
+      "category": "epoki"
+    }
+  },
+  {
+    "type": "lexicon",
+    "data": {
+      "term": "liryka",
+      "definition": "Rodzaj literacki wyrażający uczucia i przeżycia podmiotu lirycznego. W antyku śpiewana przy akompaniamencie liry.",
+      "forms": "[\"liryki\", \"liryką\", \"liryczny\", \"liryczna\"]",
+      "category": "epoki"
+    }
+  },
+  {
+    "type": "lexicon",
+    "data": {
+      "term": "kalokagathia",
+      "definition": "Antyczny ideał harmonii piękna fizycznego (kalos) i doskonałości moralnej (kagathos). Bohater musiał być zarówno piękny, jak i szlachetny.",
+      "forms": "[\"kalokagathii\", \"kalokagathią\"]",
+      "category": "epoki"
+    }
+  },
+  {
+    "type": "lexicon",
+    "data": {
+      "term": "arete",
+      "definition": "Greckie dążenie do bycia najlepszym w swojej dziedzinie — w walce, mowie, myśleniu. Cnota jako doskonałość w działaniu.",
+      "forms": "[\"aretę\"]",
+      "category": "epoki"
+    }
+  },
+  {
+    "type": "lexicon",
+    "data": {
+      "term": "fatum",
+      "definition": "Przeznaczenie, los wyznaczony przez bogów lub kosmiczny porządek, którego nie da się oszukać. Napędza fabułę tragedii i eposu antycznego.",
+      "forms": "[\"fata\", \"fatalizm\", \"fatalny\"]",
+      "category": "epoki"
+    }
+  },
+  {
+    "type": "lexicon",
+    "data": {
+      "term": "teocentryzm",
+      "definition": "Światopogląd średniowieczny, w którym Bóg jest centrum wszechświata, myśli i sztuki. Człowiek definiuje się przez relację ze Stwórcą.",
+      "forms": "[\"teocentryzmu\", \"teocentryzmem\", \"teocentryczny\"]",
+      "category": "epoki"
+    }
+  },
+  {
+    "type": "lexicon",
+    "data": {
+      "term": "wzorce osobowe",
+      "definition": "Trzy średniowieczne modele do naśladowania: święty (asceta), rycerz (wojownik wierny Bogu) i władca (sprawiedliwy rządca). Wszystkie prowadziły ku zbawieniu.",
+      "forms": "[\"wzorców osobowych\", \"wzorcami osobowymi\", \"wzorzec osobowy\"]",
+      "category": "epoki"
+    }
+  },
+  {
+    "type": "lexicon",
+    "data": {
+      "term": "antropocentryzm",
+      "definition": "Światopogląd renesansowy stawiający człowieka z jego rozumem, godnością i twórczością w centrum zainteresowania — w opozycji do teocentryzmu.",
+      "forms": "[\"antropocentryzmu\", \"antropocentryzmem\", \"antropocentryczny\"]",
+      "category": "epoki"
+    }
+  },
+  {
+    "type": "lexicon",
+    "data": {
+      "term": "ad fontes",
+      "definition": "Hasło renesansu — \"do źródeł\", czyli powrót do dziedzictwa starożytnych Greków i Rzymian jako wzoru pełnego człowieczeństwa.",
+      "forms": "[]",
+      "category": "epoki"
+    }
+  },
+  {
+    "type": "lexicon",
+    "data": {
+      "term": "humanizm",
+      "definition": "Filozofia renesansowa doceniająca rozum, godność i twórczość człowieka. Humanista znał klasyków, cenił piękno, sztukę i naukę.",
+      "forms": "[\"humanizmu\", \"humanizmem\", \"humanistyczny\", \"humanista\"]",
+      "category": "epoki"
+    }
+  },
+  {
+    "type": "lexicon",
+    "data": {
+      "term": "reformacja",
+      "definition": "Ruch religijny XVI w. kwestionujący autorytet Kościoła katolickiego. W Polsce towarzyszyła jej konfederacja warszawska (1573) — akt tolerancji wyznaniowej.",
+      "forms": "[\"reformacji\", \"reformacją\", \"reformacyjny\"]",
+      "category": "epoki"
+    }
+  },
+  {
+    "type": "lexicon",
+    "data": {
+      "term": "konfederacja warszawska",
+      "definition": "Akt z 1573 roku gwarantujący wolność wyznania w Rzeczypospolitej — jeden z pierwszych tego typu dokumentów w Europie.",
+      "forms": "[\"konfederacji warszawskiej\", \"konfederacją warszawską\"]",
+      "category": "epoki"
+    }
+  },
+  {
+    "type": "lexicon",
+    "data": {
+      "term": "vanitas",
+      "definition": "Motyw marności i przemijania, wywodzący się z Księgi Koheleta. Kluczowy temat baroku — przypomina, że nic ziemskie nie jest trwałe.",
+      "forms": "[\"vanitas vanitatum\"]",
+      "category": "epoki"
+    }
+  },
+  {
+    "type": "lexicon",
+    "data": {
+      "term": "konceptyzm",
+      "definition": "Nurt baroku oparty na koncepcie — zaskakującym pomyśle poetyckim, paradoksie, kunsztownym zestawieniu odległych pojęć. Celem było olśnić intelektualną błyskotliwością.",
+      "forms": "[\"konceptyzmu\", \"konceptyzmem\", \"konceptystyczny\"]",
+      "category": "epoki"
+    }
+  },
+  {
+    "type": "lexicon",
+    "data": {
+      "term": "koncept",
+      "definition": "Zaskakujące zestawienie, paradoks lub intelektualna zagadka w poezji barokowej — np. porównanie zakochanego do trupa u Morsztyna.",
+      "forms": "[\"konceptu\", \"konceptem\", \"koncepty\"]",
+      "category": "epoki"
+    }
+  },
+  {
+    "type": "lexicon",
+    "data": {
+      "term": "marinizm",
+      "definition": "Nurt poezji barokowej, nazwa od włoskiego poety Marina. Wirtuozeria językowa, ozdobność, zaskakujące metafory. W Polsce — Morsztyn.",
+      "forms": "[\"marinizmu\", \"marinizmem\"]",
+      "category": "epoki"
+    }
+  },
+  {
+    "type": "lexicon",
+    "data": {
+      "term": "sarmatyzm",
+      "definition": "Ideologia polskiej szlachty XVII w. oparta na micie pochodzenia od Sarmatów. Łączyła patriotyzm, religijność i obronę przywilejów stanowych.",
+      "forms": "[\"sarmatyzmu\", \"sarmatyzmem\", \"sarmacki\", \"sarmata\"]",
+      "category": "epoki"
+    }
+  },
+  {
+    "type": "lexicon",
+    "data": {
+      "term": "mesjanizm",
+      "definition": "Wiara, że Polska — \"Chrystus narodów\" — cierpi za inne narody, a jej cierpienie doprowadzi do zmartwychwstania i wyzwolenia wszystkich ludów.",
+      "forms": "[\"mesjanizmu\", \"mesjanizmem\", \"mesjanistyczny\", \"mesjański\"]",
+      "category": "epoki"
+    }
+  },
+  {
+    "type": "lexicon",
+    "data": {
+      "term": "prometeizm",
+      "definition": "Postawa buntu jednostki przeciwko porządkowi świata (Bogu) w imię zbiorowości — jak Konrad w Wielkiej Improwizacji, który żąda władzy nad uczuciami ludzkimi.",
+      "forms": "[\"prometeizmu\", \"prometeizmem\", \"prometejski\"]",
+      "category": "epoki"
+    }
+  },
+  {
+    "type": "lexicon",
+    "data": {
+      "term": "emigracja",
+      "definition": "Po powstaniu listopadowym (1830) tysiące Polaków — w tym Mickiewicz, Słowacki, Krasiński, Chopin — osiadło w Paryżu. Wielka Emigracja stała się przestrzenią twórczości narodowej.",
+      "forms": "[\"emigracji\", \"emigracją\", \"emigracyjny\"]",
+      "category": "epoki"
+    }
+  },
+  {
+    "type": "lexicon",
+    "data": {
+      "term": "rozbiory",
+      "definition": "Trzy etapy podziału Polski (1772, 1793, 1795) między Rosję, Prusy i Austrię. 123 lata bez państwa — impuls dla mesjanizmu i literatury jako walki o tożsamość.",
+      "forms": "[\"rozbiorów\", \"rozbiorami\", \"rozbiorowy\"]",
+      "category": "epoki"
+    }
+  },
+  {
+    "type": "lexicon",
+    "data": {
+      "term": "praca organiczna",
+      "definition": "Program pozytywistów: społeczeństwo to organizm, trzeba rozwijać przemysł, handel i gospodarkę, by całość była zdrowa. Modernizacja od środka.",
+      "forms": "[\"pracy organicznej\", \"pracą organiczną\"]",
+      "category": "epoki"
+    }
+  },
+  {
+    "type": "lexicon",
+    "data": {
+      "term": "praca u podstaw",
+      "definition": "Program pozytywistów: edukacja najuboższych, budowa szkół i szpitali, walka z ciemnotą — podnoszenie ludu zamiast walki zbrojnej.",
+      "forms": "[\"pracy u podstaw\", \"pracą u podstaw\"]",
+      "category": "epoki"
+    }
+  },
+  {
+    "type": "lexicon",
+    "data": {
+      "term": "pozytywizm filozoficzny",
+      "definition": "Filozofia Augusta Comte'a: jedyną pewną wiedzą jest wiedza naukowa, oparta na faktach i obserwacji. Fundament programu pozytywistów.",
+      "forms": "[\"pozytywizmu filozoficznego\", \"pozytywizmem filozoficznym\"]",
+      "category": "epoki"
+    }
+  },
+  {
+    "type": "lexicon",
+    "data": {
+      "term": "powieść realistyczna",
+      "definition": "Dominujący gatunek pozytywizmu — lustro społeczeństwa. Cechy: narrator wszechwiedzący, szczegółowe opisy, pogłębiona psychologia, szerokie tło społeczne.",
+      "forms": "[\"powieści realistycznej\", \"powieścią realistyczną\"]",
+      "category": "epoki"
+    }
+  },
+  {
+    "type": "lexicon",
+    "data": {
+      "term": "konflikt tragiczny",
+      "definition": "Zderzenie dwóch równorzędnych racji, z których żadna nie jest fałszywa — np. prawo boskie vs. prawo państwowe w Antygonie. Każdy wybór prowadzi do katastrofy.",
+      "forms": "[\"konfliktu tragicznego\", \"konfliktem tragicznym\"]",
+      "category": "lektury"
+    }
+  },
+  {
+    "type": "lexicon",
+    "data": {
+      "term": "prawo boskie",
+      "definition": "W Antygonie — nadrzędny porządek moralny nakazujący pochówek bliskich, niezależnie od dekretu władcy. Racja Antygony w konflikcie z Kreonem.",
+      "forms": "[\"prawa boskiego\", \"prawem boskim\"]",
+      "category": "lektury"
+    }
+  },
+  {
+    "type": "lexicon",
+    "data": {
+      "term": "hybris",
+      "definition": "Pycha — przekonanie bohatera o własnej nieomylności. U Kreona: nie słucha nikogo i traci wszystkich bliskich. Częsta przyczyna katastrofy w tragedii.",
+      "forms": "[\"hybris\"]",
+      "category": "lektury"
+    }
+  },
+  {
+    "type": "lexicon",
+    "data": {
+      "term": "hamartia",
+      "definition": "Błąd tragiczny wynikający z ludzkiej ograniczoności, nie ze złości. Edyp szuka mordercy, nie wiedząc, że to on sam. Kluczowy termin Arystotelesa.",
+      "forms": "[\"hamartii\", \"hamartią\"]",
+      "category": "lektury"
+    }
+  },
+  {
+    "type": "lexicon",
+    "data": {
+      "term": "inwokacja",
+      "definition": "Wezwanie muzy lub wyższej siły na początku eposu — sygnał, że opowieść jest większa niż sam poeta. Homer: \"Gniew, bogini, opiewaj...\", Mickiewicz: \"Litwo! Ojczyzno moja!\"",
+      "forms": "[\"inwokacji\", \"inwokacją\"]",
+      "category": "lektury"
+    }
+  },
+  {
+    "type": "lexicon",
+    "data": {
+      "term": "in medias res",
+      "definition": "\"W środek rzeczy\" — konwencja eposu, w której narracja zaczyna się w trakcie akcji. Iliada nie od początku wojny, lecz od jej dziewiątego roku.",
+      "forms": "[]",
+      "category": "lektury"
+    }
+  },
+  {
+    "type": "lexicon",
+    "data": {
+      "term": "narrator wszechwiedzący",
+      "definition": "Typ narratora, który wie wszystko: zna myśli bohaterów, widzi obie strony konfliktu, wie, co robią bogowie. Typowy dla eposu i powieści realistycznej.",
+      "forms": "[\"narratora wszechwiedzącego\", \"narratorem wszechwiedzącym\"]",
+      "category": "lektury"
+    }
+  },
+  {
+    "type": "lexicon",
+    "data": {
+      "term": "stały epitet",
+      "definition": "Powtarzające się określenie postaci w eposie — Achilles \"szybkonogi\", Odys \"przebiegły\". Formuła mnemotechniczna z epoki tradycji oralnej.",
+      "forms": "[\"stałego epitetu\", \"stałym epitetem\", \"stałe epitety\"]",
+      "category": "lektury"
+    }
+  },
+  {
+    "type": "lexicon",
+    "data": {
+      "term": "porównanie homeryckie",
+      "definition": "Rozbudowane, wielopoziomowe porównanie w eposie — np. wojownik porównany do lwa, lew do burzy, burza do gniewu bogów.",
+      "forms": "[\"porównania homeryckiego\", \"porównaniem homeryckim\", \"porównania homeryckie\"]",
+      "category": "lektury"
+    }
+  },
+  {
+    "type": "lexicon",
+    "data": {
+      "term": "hierarchia pośredników",
+      "definition": "Teologiczny porządek Bogurodzicy — człowiek nie zwraca się bezpośrednio do Boga, lecz przez Maryję i Jana Chrzciciela. Odzwierciedla średniowieczny teocentryzm.",
+      "forms": "[\"hierarchii pośredników\", \"hierarchią pośredników\"]",
+      "category": "lektury"
+    }
+  },
+  {
+    "type": "lexicon",
+    "data": {
+      "term": "degeneracja moralna",
+      "definition": "Proces stopniowego upadku moralnego bohatera — w Makbecie: od wahania, przez zbrodnię pod wpływem, eskalację morderstw, po nihilizm. Jedno z kluczowych zjawisk w dramacie Szekspira.",
+      "forms": "[\"degeneracji moralnej\", \"degeneracją moralną\"]",
+      "category": "lektury"
+    }
+  },
+  {
+    "type": "lexicon",
+    "data": {
+      "term": "Lady Makbet",
+      "definition": "Żona Makbeta, która planuje zbrodnię i pcha męża do czynu. Początkowo silniejsza od niego, potem łamie się pod ciężarem winy — słynna scena lunatycznego mycia rąk.",
+      "forms": "[\"Lady Makbet\"]",
+      "category": "lektury"
+    }
+  },
+  {
+    "type": "lexicon",
+    "data": {
+      "term": "Wielka Improwizacja",
+      "definition": "Monolog Konrada w Dziadach cz. III — prometejski bunt przeciw Bogu, żądanie władzy nad uczuciami ludzkimi w imię zbawienia narodu. Kulminacja romantycznego indywidualizmu.",
+      "forms": "[\"Wielkiej Improwizacji\", \"Wielką Improwizacją\"]",
+      "category": "lektury"
+    }
+  },
+  {
+    "type": "lexicon",
+    "data": {
+      "term": "Widzenie księdza Piotra",
+      "definition": "Scena z Dziadów cz. III — pokorny kapłan (nie pyszny geniusz) otrzymuje wizję mesjanistyczną: Polska jako Chrystus narodów, rozbiory jako ukrzyżowanie, odrodzenie jako zmartwychwstanie.",
+      "forms": "[\"Widzenia księdza Piotra\", \"Widzeniu księdza Piotra\"]",
+      "category": "lektury"
+    }
+  },
+  {
+    "type": "lexicon",
+    "data": {
+      "term": "martyrologia",
+      "definition": "W Dziadach cz. III — opisy cierpień polskiej młodzieży prześladowanej przez Nowosilcowa w Wilnie. Konkretne biografie (Cichowski, Rollison) jako świadectwo narodowej męki.",
+      "forms": "[\"martyrologii\", \"martyrologią\", \"martyrologiczny\"]",
+      "category": "lektury"
+    }
+  },
+  {
+    "type": "lexicon",
+    "data": {
+      "term": "panorama społeczeństwa",
+      "definition": "Lalka Prusa jako obraz wszystkich warstw Warszawy — arystokracji, burżuazji, inteligencji, biedoty — i ich wzajemnych relacji. Diagnoza, dlaczego Polska nie potrafi się zmodernizować.",
+      "forms": "[\"panoramy społeczeństwa\", \"panoramą społeczeństwa\"]",
+      "category": "lektury"
+    }
+  },
+  {
+    "type": "lexicon",
+    "data": {
+      "term": "klęska idealizmu",
+      "definition": "Motyw przewodni Lalki: trzy pokolenia idealistów (Rzecki, Wokulski, Ochocki) ponoszą porażkę, bo ich ideały rozbijają się o bariery polskiego społeczeństwa.",
+      "forms": "[\"klęski idealizmu\", \"klęską idealizmu\"]",
+      "category": "lektury"
+    }
+  },
+  {
+    "type": "lexicon",
+    "data": {
+      "term": "katharsis",
+      "definition": "Oczyszczenie emocji (litości i trwogi) przez przeżycie tragedii. Według Arystotelesa — cel tragedii: widz wychodzi z teatru wyzwolony duchowo.",
+      "forms": "[\"katharsis\"]",
+      "category": "poetyka"
+    }
+  },
+  {
+    "type": "lexicon",
+    "data": {
+      "term": "trzy jedności",
+      "definition": "Reguły klasycznej tragedii greckiej: jedność czasu (akcja do 24h), miejsca (jedna lokalizacja) i akcji (jeden wątek główny). Zapewniają zwartość i intensywność dramatu.",
+      "forms": "[\"trzech jedności\", \"trzema jednościami\"]",
+      "category": "poetyka"
+    }
+  },
+  {
+    "type": "lexicon",
+    "data": {
+      "term": "chór",
+      "definition": "W tragedii greckiej — głos wspólnoty, komentator i moralne sumienie. Mówi to, co widzowie czują, ale bohater nie chce słyszeć.",
+      "forms": "[\"chóru\", \"chórem\"]",
+      "category": "poetyka"
+    }
+  },
+  {
+    "type": "lexicon",
+    "data": {
+      "term": "sonet",
+      "definition": "Forma poetycka: 14 wersów — dwie kwatryny (4+4) i dwie tercyny (3+3). Między nimi volta (zwrot myśli). Powstał w XIII-wiecznych Włoszech, rozkwitł dzięki Petrarce.",
+      "forms": "[\"sonetu\", \"sonetem\", \"sonety\", \"sonetowy\"]",
+      "category": "poetyka"
+    }
+  },
+  {
+    "type": "lexicon",
+    "data": {
+      "term": "volta",
+      "definition": "Zwrot myśli w sonecie — moment przejścia od opisu (kwatryny) do refleksji i puenty (tercyny). Punkt kulminacyjny wiersza.",
+      "forms": "[\"volty\", \"voltą\"]",
+      "category": "poetyka"
+    }
+  },
+  {
+    "type": "lexicon",
+    "data": {
+      "term": "kwatryna",
+      "definition": "Strofa czterowersowa w sonecie. Dwie kwatryny (4+4 wersy) tworzą część opisową/tezową sonetu.",
+      "forms": "[\"kwatryny\", \"kwartyną\", \"kwartyny\"]",
+      "category": "poetyka"
+    }
+  },
+  {
+    "type": "lexicon",
+    "data": {
+      "term": "tercyna",
+      "definition": "Strofa trzywersowa w sonecie. Dwie tercyny (3+3 wersy) przynoszą refleksję i puentę po volcie.",
+      "forms": "[\"tercyny\", \"tercyną\"]",
+      "category": "poetyka"
+    }
+  },
+  {
+    "type": "lexicon",
+    "data": {
+      "term": "synestezja",
+      "definition": "Łączenie wrażeń różnych zmysłów — np. \"słyszenie\" ciszy, \"widzenie\" dźwięków. Mickiewicz w Sonetach krymskich zaciera granice zmysłów.",
+      "forms": "[\"synestezji\", \"synestezją\", \"synestetyczny\"]",
+      "category": "poetyka"
+    }
+  },
+  {
+    "type": "lexicon",
+    "data": {
+      "term": "ballada",
+      "definition": "Gatunek synkretyczny łączący lirykę (nastrój), epikę (fabuła) i dramat (dialogi). Czerpie z tradycji ludowej. Romantyczność Mickiewicza to manifest epoki.",
+      "forms": "[\"ballady\", \"balladą\", \"balladowy\"]",
+      "category": "poetyka"
+    }
+  },
+  {
+    "type": "lexicon",
+    "data": {
+      "term": "synkretyzm gatunkowy",
+      "definition": "Łączenie elementów różnych rodzajów literackich (liryki, epiki, dramatu) w jednym utworze. Cecha ballady romantycznej i dramatu romantycznego.",
+      "forms": "[\"synkretyzmu gatunkowego\", \"synkretyzmem gatunkowym\", \"synkretyczny\"]",
+      "category": "poetyka"
+    }
+  },
+  {
+    "type": "lexicon",
+    "data": {
+      "term": "powieść historyczna",
+      "definition": "Odmiana powieści z akcją osadzoną w przeszłości. Sienkiewicz w Trylogii budował mit dawnej Polski. Walter Scott stworzył gatunek w Ivanhoe.",
+      "forms": "[\"powieści historycznej\", \"powieścią historyczną\"]",
+      "category": "poetyka"
+    }
+  },
+  {
+    "type": "lexicon",
+    "data": {
+      "term": "powieść tendencyjna",
+      "definition": "Powieść z jawną tezą społeczną — literatura w służbie idei. Orzeszkowa w Marcie pokazała tragedię kobiety bez prawa do pracy.",
+      "forms": "[\"powieści tendencyjnej\", \"powieścią tendencyjną\"]",
+      "category": "poetyka"
+    }
+  },
+  {
+    "type": "lexicon",
+    "data": {
+      "term": "powieść epistolarna",
+      "definition": "Powieść pisana w formie listów. Klasyk gatunku: Cierpienia młodego Wertera Goethego.",
+      "forms": "[\"powieści epistolarnej\", \"powieścią epistolarną\"]",
+      "category": "poetyka"
+    }
+  },
+  {
+    "type": "lexicon",
+    "data": {
+      "term": "powieść psychologiczna",
+      "definition": "Odmiana powieści skupiona na wnętrzu bohatera, analizie motywacji i sumienia. Dostojewski w Zbrodni i karze analizuje psychikę mordercy.",
+      "forms": "[\"powieści psychologicznej\", \"powieścią psychologiczną\"]",
+      "category": "poetyka"
+    }
+  },
+  {
+    "type": "lexicon",
+    "data": {
+      "term": "archetyp",
+      "definition": "Uniwersalny wzorzec postaci lub sytuacji powtarzający się w literaturze — np. Prometeusz jako buntownik, Syzyf jako bohater absurdu. Mity to alfabet kultury.",
+      "forms": "[\"archetypu\", \"archetypem\", \"archetypy\", \"archetypowy\"]",
+      "category": "konteksty"
+    }
+  },
+  {
+    "type": "lexicon",
+    "data": {
+      "term": "Prometeusz",
+      "definition": "Tytan, który ukradł bogom ogień dla ludzi i został skazany na wieczną mękę. Archetyp buntownika cierpiącego za zbiorowość — wzór dla romantycznego bohatera (Konrad).",
+      "forms": "[\"Prometeusza\", \"Prometeuszem\", \"prometejski\"]",
+      "category": "konteksty"
+    }
+  },
+  {
+    "type": "lexicon",
+    "data": {
+      "term": "Syzyf",
+      "definition": "Skazany na wieczne wtaczanie głazu na górę. W XX w. Camus uczynił go bohaterem absurdu — Syzyf jest szczęśliwy, bo znalazł sens w samym działaniu.",
+      "forms": "[\"Syzyfa\", \"Syzyfem\", \"syzyfowy\"]",
+      "category": "konteksty"
+    }
+  },
+  {
+    "type": "lexicon",
+    "data": {
+      "term": "Ikar",
+      "definition": "Syn Dedala, który poleciał za blisko słońca — wosk stopił skrzydła i spadł do morza. Symbol ludzkiej hybris: ambicji przekraczającej granice.",
+      "forms": "[\"Ikara\", \"Ikarem\", \"ikaryjski\"]",
+      "category": "konteksty"
+    }
+  },
+  {
+    "type": "lexicon",
+    "data": {
+      "term": "psalm",
+      "definition": "Gatunek biblijny — pieśń pochwalna lub błagalna skierowana do Boga. Przetrwał od Starego Testamentu do współczesnej poezji.",
+      "forms": "[\"psalmu\", \"psalmem\", \"psalmy\"]",
+      "category": "konteksty"
+    }
+  },
+  {
+    "type": "lexicon",
+    "data": {
+      "term": "przypowieść",
+      "definition": "Parabola — krótka opowieść z morałem, gatunek biblijny. Np. o synu marnotrawnym, Dobrym Samarytaninie, o siewcy. Uczy przez analogię.",
+      "forms": "[\"przypowieści\", \"przypowieścią\", \"parabola\", \"paraboli\"]",
+      "category": "konteksty"
+    }
+  },
+  {
+    "type": "lexicon",
+    "data": {
+      "term": "apokalipsa",
+      "definition": "Wizja końca świata i Sądu Ostatecznego — ostatnia księga Nowego Testamentu. Motyw powracający u Krasińskiego, Miłosza i w literaturze XX w.",
+      "forms": "[\"apokalipsy\", \"apokalipsą\", \"apokaliptyczny\"]",
+      "category": "konteksty"
+    }
+  },
+  {
+    "type": "lexicon",
+    "data": {
+      "term": "raj utracony",
+      "definition": "Motyw biblijny — tęsknota za stanem niewinności i szczęścia. Milton napisał epos, Mickiewicz w Panu Tadeuszu tworzy raj litewskiego dzieciństwa.",
+      "forms": "[\"raju utraconego\", \"rajem utraconym\"]",
+      "category": "konteksty"
+    }
+  },
+  {
+    "type": "lexicon",
+    "data": {
+      "term": "teodyce",
+      "definition": "Pytanie: dlaczego Bóg dopuszcza cierpienie niewinnych? Motyw Hioba. Kochanowski w Trenach pyta, dlaczego stracił Urszulkę.",
+      "forms": "[\"teodycei\", \"teodyceja\", \"teodycejny\"]",
+      "category": "konteksty"
+    }
+  },
+  {
+    "type": "lexicon",
+    "data": {
+      "term": "homo viator",
+      "definition": "Człowiek jako pielgrzym — podróżnik przez życie ku wieczności. Motyw biblijny obecny od średniowiecza po literaturę współczesną.",
+      "forms": "[]",
+      "category": "konteksty"
+    }
+  },
+  {
+    "type": "lexicon",
+    "data": {
+      "term": "lamentacja",
+      "definition": "Gatunek biblijny wyrażający żal, rozpacz, opłakiwanie. Lament świętokrzyski — najstarsza polska lamentacja maryjna.",
+      "forms": "[\"lamentacji\", \"lamentacją\"]",
+      "category": "konteksty"
+    }
+  },
+  {
+    "type": "lexicon",
+    "data": {
+      "term": "stoicyzm",
+      "definition": "Filozofia antyczna: opanowanie emocji, godne znoszenie losu, niezależność od zewnętrznych okoliczności. Kochanowski w Pieśni IX jest stoikiem.",
+      "forms": "[\"stoicyzmu\", \"stoicyzmem\", \"stoicki\", \"stoik\"]",
+      "category": "konteksty"
+    }
+  },
+  {
+    "type": "lexicon",
+    "data": {
+      "term": "epikureizm",
+      "definition": "Filozofia antyczna: rozsądna przyjemność i unikanie cierpienia jako droga do szczęścia. Horacy: \"Carpe diem\" — chwytaj dzień.",
+      "forms": "[\"epikureizmu\", \"epikureizmem\", \"epikurejski\"]",
+      "category": "konteksty"
+    }
+  },
+  {
+    "type": "lexicon",
+    "data": {
+      "term": "złoty środek",
+      "definition": "Arystotelesowska zasada umiaru — cnota leży pomiędzy dwiema skrajnościami. Fundament etyki antycznej i renesansowej.",
+      "forms": "[\"złotego środka\", \"złotym środkiem\"]",
+      "category": "konteksty"
+    }
+  },
+  {
+    "type": "lexicon",
+    "data": {
+      "term": "scholastyka",
+      "definition": "Średniowieczna metoda filozoficzna łącząca wiarę z rozumem. Św. Tomasz z Akwinu — główny przedstawiciel, autor syntezy teologii i filozofii Arystotelesa.",
+      "forms": "[\"scholastyki\", \"scholastyką\", \"scholastyczny\"]",
+      "category": "konteksty"
+    }
+  },
+  {
+    "type": "lexicon",
+    "data": {
+      "term": "racjonalizm",
+      "definition": "Filozofia oświeceniowa (Kartezjusz: \"Myślę, więc jestem\"): rozum jako główne źródło wiedzy i kryterium prawdy.",
+      "forms": "[\"racjonalizmu\", \"racjonalizmem\", \"racjonalistyczny\", \"racjonalny\"]",
+      "category": "konteksty"
+    }
+  },
+  {
+    "type": "lexicon",
+    "data": {
+      "term": "empiryzm",
+      "definition": "Filozofia oświeceniowa (Locke): wiedza pochodzi z doświadczenia zmysłowego, nie z wrodzonych idei. Fundament myśli naukowej.",
+      "forms": "[\"empiryzmu\", \"empiryzmem\", \"empiryczny\"]",
+      "category": "konteksty"
+    }
+  },
+  {
+    "type": "lexicon",
+    "data": {
+      "term": "utylitaryzm",
+      "definition": "Filozofia Benthama i Milla: dobre jest to, co przynosi szczęście jak największej liczbie ludzi. Wpływ na program pozytywistów.",
+      "forms": "[\"utylitaryzmu\", \"utylitaryzmem\", \"utylitarny\", \"utylitarystyczny\"]",
+      "category": "konteksty"
+    }
+  },
+  {
+    "type": "lexicon",
+    "data": {
+      "term": "nadczłowiek",
+      "definition": "Nietzscheański Übermensch — jednostka, która tworzy własne wartości po \"śmierci Boga\" (utracie tradycyjnych autorytetów). Wpływ na modernizm i dekadentyzm.",
+      "forms": "[\"nadczłowieka\", \"nadczłowiekiem\"]",
+      "category": "konteksty"
+    }
+  },
+  {
+    "type": "lexicon",
+    "data": {
+      "term": "dekadentyzm",
+      "definition": "Nurt Młodej Polski inspirowany Schopenhauerem: poczucie bezsensu, niemocy, fascynacja śmiercią i chorobą. Artysta odrzuca aktywne życie na rzecz kontemplacji.",
+      "forms": "[\"dekadentyzmu\", \"dekadentyzmem\", \"dekadencki\", \"dekadent\"]",
+      "category": "konteksty"
+    }
+  },
+  {
+    "type": "lexicon",
+    "data": {
+      "term": "egzystencjalizm",
+      "definition": "Filozofia XX w. (Sartre, Camus): człowiek jest wolny i skazany na wybór, nie ma gotowego sensu — trzeba go stworzyć samemu. Absurd istnienia, ale trzeba żyć.",
+      "forms": "[\"egzystencjalizmu\", \"egzystencjalizmem\", \"egzystencjalny\", \"egzystencjalistyczny\"]",
+      "category": "konteksty"
+    }
+  },
+  {
+    "type": "lexicon",
+    "data": {
+      "term": "neoplatonizm",
+      "definition": "Renesansowe odrodzenie filozofii Platona: piękno jako droga do prawdy, świat zmysłowy jako odbicie idealnego porządku.",
+      "forms": "[\"neoplatonizmu\", \"neoplatonizmem\", \"neoplatoński\"]",
+      "category": "konteksty"
+    }
+  },
+  {
+    "type": "lexicon",
+    "data": {
+      "term": "powstanie listopadowe",
+      "definition": "Zryw przeciw Rosji w 1830 roku, zakończony klęską. Bezpośredni impuls dla Dziadów cz. III i Wielkiej Emigracji (Mickiewicz, Słowacki, Krasiński, Chopin w Paryżu).",
+      "forms": "[\"powstania listopadowego\", \"powstaniem listopadowym\"]",
+      "category": "konteksty"
+    }
+  },
+  {
+    "type": "lexicon",
+    "data": {
+      "term": "powstanie styczniowe",
+      "definition": "Zryw niepodległościowy 1863 roku, zakończony klęską. Przełom literacki: koniec romantycznego heroizmu, narodziny pozytywizmu i programu pracy organicznej.",
+      "forms": "[\"powstania styczniowego\", \"powstaniem styczniowym\"]",
+      "category": "konteksty"
+    }
+  },
+  {
+    "type": "lexicon",
+    "data": {
+      "term": "drugi obieg",
+      "definition": "Podziemna literatura w PRL-u, wydawana poza cenzurą. Miłosz, Herbert i inni publikowali tam dzieła zakazane przez władzę komunistyczną.",
+      "forms": "[\"drugiego obiegu\", \"drugim obiegiem\"]",
+      "category": "konteksty"
+    }
+  },
+  {
+    "type": "lexicon",
+    "data": {
+      "term": "Chrystus narodów",
+      "definition": "Mesjanistyczna metafora z Dziadów cz. III: Polska cierpi niewinnie jak Chrystus, rozbiory to ukrzyżowanie, a przyszłe odrodzenie to zmartwychwstanie przynoszące wolność wszystkim ludom.",
+      "forms": "[\"Chrystusa narodów\", \"Chrystusem narodów\"]",
+      "category": "lektury"
+    }
+  },
+  {
+    "type": "lexicon",
+    "data": {
+      "term": "docere et movere",
+      "definition": "\"Uczyć i wzruszać\" — średniowieczna zasada literacka. Literatura miała służyć edukacji moralnej i poruszać emocje, prowadząc ku zbawieniu.",
+      "forms": "[]",
+      "category": "epoki"
+    }
+  }
+]
