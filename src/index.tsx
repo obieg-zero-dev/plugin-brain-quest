@@ -1,17 +1,11 @@
 import type { PluginFactory, PostRecord } from '@obieg-zero/sdk'
-import { forceSimulation, forceLink, forceManyBody, forceCenter, forceRadial, forceCollide, type Simulation } from 'd3-force'
-import { zoom as d3zoom, zoomIdentity, type ZoomBehavior } from 'd3-zoom'
-import { drag as d3drag } from 'd3-drag'
-import { select } from 'd3-selection'
-
-type SimNode = { id: string; nid: string; tier: number; branch: string; x: number; y: number; vx?: number; vy?: number; fx?: number | null; fy?: number | null }
-type SimLink = { source: string | SimNode; target: string | SimNode; count?: number; relation?: string; strength?: number; kind: 'struct' | 'context' | 'flash' }
+import { KnowledgeGraph, type GraphNode, type GraphEdge, type GraphContextEdge, type BranchDef, type RelTypeDef } from '@obieg-zero/bq-graph'
 
 const GH_API = 'https://api.github.com'
 const GH_RAW = 'https://raw.githubusercontent.com'
 
 const plugin: PluginFactory = ({ React, ui, store, sdk, icons }) => {
-  const { useState, useMemo, useCallback, useRef, useEffect } = React
+  const { useState, useMemo, useEffect } = React
   const { Award, X, Zap, BookOpen } = icons
 
   store.registerType('tree', [
@@ -54,9 +48,6 @@ const plugin: PluginFactory = ({ React, ui, store, sdk, icons }) => {
   store.registerType('lexNode', [
     { key: 'nid', label: 'NodeId', required: true },
   ], 'Powiązania term↔węzeł')
-  store.registerType('form', [
-    { key: 'value', label: 'Forma', required: true },
-  ], 'Formy gramatyczne')
   store.registerType('quiz', [
     { key: 'question', label: 'Pytanie', required: true },
     { key: 'answer', label: 'Odpowiedź', required: true },
@@ -66,18 +57,6 @@ const plugin: PluginFactory = ({ React, ui, store, sdk, icons }) => {
     { key: 'hint', label: 'Wskazówka' },
   ], 'Quizy')
 
-  // Taksonomia relacji — per-tree (tree.data.relations), nieznane → fallback
-  const FALLBACK_REL = { label: 'inne', color: 'neutral' }
-  type RelDef = { label: string; color: string }
-
-  // Semantic token → CSS var. Akceptuje też raw hex/var dla backward compat.
-  const DAISY_TOKENS = new Set(['primary', 'secondary', 'accent', 'info', 'success', 'warning', 'error', 'neutral', 'base-100', 'base-200', 'base-300', 'base-content'])
-  const tok = (name: string): string => {
-    if (!name) return 'var(--color-neutral)'
-    if (name.startsWith('#') || name.startsWith('var(') || name.startsWith('rgb')) return name
-    if (DAISY_TOKENS.has(name)) return `var(--color-${name})`
-    return 'var(--color-neutral)'
-  }
   store.registerType('discovery', [
     { key: 'termId', label: 'Termin', required: true },
     { key: 'hits', label: 'Odkrycia' },
@@ -111,16 +90,13 @@ const plugin: PluginFactory = ({ React, ui, store, sdk, icons }) => {
 
   // bqHelpers ustawiane po definicji loadNodeContent poniżej
 
-  // Hook: buduje mapy lexNode/form/quiz raz, używany w każdym pluginie BQ
   const useLexMaps = () => {
     const lexNodes = store.usePosts('lexNode') as PostRecord[]
-    const forms = store.usePosts('form') as PostRecord[]
     const quizzes = store.usePosts('quiz') as PostRecord[]
-    return useMemo(() => buildLexMaps(lexNodes, forms, quizzes), [lexNodes, forms, quizzes])
+    return useMemo(() => buildLexMaps(lexNodes, quizzes), [lexNodes, quizzes])
   }
 
-  // Buduje mapy z dzieci leksykonu (lexNode/form/quiz) — zastępuje parsowanie JSON-stringów
-  const buildLexMaps = (lexNodes: PostRecord[], forms: PostRecord[], quizzes: PostRecord[]) => {
+  const buildLexMaps = (lexNodes: PostRecord[], quizzes: PostRecord[]) => {
     const nidMap = new Map<string, string[]>()
     for (const ln of lexNodes) {
       const lid = ln.parentId || ''
@@ -129,20 +105,12 @@ const plugin: PluginFactory = ({ React, ui, store, sdk, icons }) => {
       arr.push(String(ln.data.nid))
       nidMap.set(lid, arr)
     }
-    const formMap = new Map<string, string[]>()
-    for (const f of forms) {
-      const lid = f.parentId || ''
-      if (!lid) continue
-      const arr = formMap.get(lid) || []
-      arr.push(String(f.data.value))
-      formMap.set(lid, arr)
-    }
     const quizMap = new Map<string, PostRecord>()
     for (const q of quizzes) {
       const lid = q.parentId || ''
       if (lid) quizMap.set(lid, q)
     }
-    return { nidMap, formMap, quizMap }
+    return { nidMap, quizMap }
   }
 
   // --- state ---
@@ -156,16 +124,12 @@ const plugin: PluginFactory = ({ React, ui, store, sdk, icons }) => {
   const jparse = <T,>(s: string, fb: T): T => { try { return JSON.parse(s) } catch { return fb } }
 
 
-  // --- skill tree (fog of war) ---
+  // --- skill tree (fog of war) — wrapper nad współdzielonym KnowledgeGraph ---
   function SkillTree() {
-    const { treeId, sel, phase } = useNav()
-    const tree = store.usePost(treeId || '')
+    const { treeId, sel } = useNav()
     const nodes = store.useChildren(treeId || '', 'node') as PostRecord[]
-    const [revealed, setRevealed] = useState<Set<string>>(() => new Set())
-    // Reset revealed przy zmianie drzewa — zapobiega leak'owi przez sesję
-    useEffect(() => { setRevealed(new Set()) }, [treeId])
 
-    // Odkryte połączenia z readera — limitowane do ostatnich 10
+    // Świeżo odkryte połączenia — przychodzi z readera przez sdk.shared.bqFlash
     const flash = sdk.shared((s: any) => s?.bqFlash) as { fromNid?: string; toNid?: string } | null
     const [discoveredPairs, setDiscoveredPairs] = useState<{ fromNid: string; toNid: string; fresh: boolean }[]>([])
     useEffect(() => { setDiscoveredPairs([]) }, [treeId])
@@ -184,55 +148,39 @@ const plugin: PluginFactory = ({ React, ui, store, sdk, icons }) => {
     const edgeRecords = store.useChildren(treeId || '', 'edge') as PostRecord[]
     const branchRecords = store.useChildren(treeId || '', 'branch') as PostRecord[]
     const relTypeRecords = store.useChildren(treeId || '', 'relType') as PostRecord[]
-    const edges = useMemo(() => edgeRecords.map(e => ({ from: String(e.data.fromNid), to: String(e.data.toNid) })), [edgeRecords])
-    const branches = useMemo(() => {
-      const m: Record<string, { label: string; color: string }> = {}
-      for (const b of branchRecords) m[String(b.data.key)] = { label: String(b.data.label), color: String(b.data.color || 'neutral') }
-      return m
-    }, [branchRecords])
-    const relations = useMemo(() => {
-      const m: Record<string, RelDef> = {}
-      for (const r of relTypeRecords) m[String(r.data.key)] = { label: String(r.data.label), color: String(r.data.color || 'neutral') }
-      return m
-    }, [relTypeRecords])
-    const relDef = (r: string): RelDef => relations[r] || FALLBACK_REL
-
-    const adj = useMemo(() => {
-      const a = new Map<string, Set<string>>()
-      for (const e of edges) {
-        if (!a.has(e.from)) a.set(e.from, new Set()); if (!a.has(e.to)) a.set(e.to, new Set())
-        a.get(e.from)!.add(e.to); a.get(e.to)!.add(e.from)
-      }
-      return a
-    }, [edges])
-
-    const { visible, frontier, discovered } = useMemo(() => {
-      const disc = new Set<string>()
-      for (const n of nodes) if (Number(n.data.hits) > 0) disc.add(String(n.data.nodeId))
-      if (!disc.size) {
-        const root = [...nodes].sort((a, b) => Number(a.data.tier) - Number(b.data.tier))[0]
-        if (root) return { visible: new Set([String(root.data.nodeId)]), frontier: new Set([String(root.data.nodeId)]), discovered: disc }
-        return { visible: new Set<string>(), frontier: new Set<string>(), discovered: disc }
-      }
-      const vis = new Set(disc)
-      const front = new Set<string>()
-      for (const nid of disc) for (const nb of adj.get(nid) || []) if (!disc.has(nb)) { vis.add(nb); front.add(nb) }
-      return { visible: vis, frontier: front, discovered: disc }
-    }, [nodes, adj])
-
-    const rootNid = useMemo(() => {
-      const sorted = [...nodes].sort((a, b) => Number(a.data.tier) - Number(b.data.tier))
-      return sorted[0] ? String(sorted[0].data.nodeId) : null
-    }, [nodes])
-
-    // context edges: discovered terms with 2+ nodes → golden lines between those nodes
     const discoveries = store.usePosts('discovery') as PostRecord[]
     const terms = store.useChildren(treeId || '', 'lexicon') as PostRecord[]
     const { nidMap } = useLexMaps()
-    const contextEdges = useMemo(() => {
+
+    const graphNodes = useMemo<GraphNode[]>(() => nodes.map(n => ({
+      id: n.id,
+      nid: String(n.data.nodeId),
+      tier: Number(n.data.tier) || 0,
+      branch: String(n.data.branch || ''),
+      title: String(n.data.title),
+    })), [nodes])
+
+    const graphEdges = useMemo<GraphEdge[]>(() =>
+      edgeRecords.map(e => ({ from: String(e.data.fromNid), to: String(e.data.toNid) })),
+      [edgeRecords]
+    )
+
+    const graphBranches = useMemo<BranchDef[]>(() => branchRecords.map(b => ({
+      key: String(b.data.key),
+      label: String(b.data.label),
+      color: String(b.data.color || 'neutral'),
+    })), [branchRecords])
+
+    const graphRelTypes = useMemo<RelTypeDef[]>(() => relTypeRecords.map(r => ({
+      key: String(r.data.key),
+      label: String(r.data.label),
+      color: String(r.data.color || 'neutral'),
+    })), [relTypeRecords])
+
+    // Krawędzie kontekstowe — tylko z ODKRYTYCH terminów (gating reader-mode)
+    const graphContextEdges = useMemo<GraphContextEdge[]>(() => {
       const discoveredTermIds = new Set(discoveries.map(d => String(d.data.termId)))
-      if (!discoveredTermIds.size) return [] as { from: string; to: string; strength: number; relation: string; count: number }[]
-      // key → { counts per relation, total }
+      if (!discoveredTermIds.size) return []
       const map = new Map<string, { from: string; to: string; rels: Map<string, number> }>()
       for (const term of terms) {
         if (!discoveredTermIds.has(term.id)) continue
@@ -241,7 +189,6 @@ const plugin: PluginFactory = ({ React, ui, store, sdk, icons }) => {
         const rel = String(term.data.relation || 'inne')
         for (let i = 0; i < termNodes.length; i++)
           for (let j = i + 1; j < termNodes.length; j++) {
-            if (!visible.has(termNodes[i]) || !visible.has(termNodes[j])) continue
             const [a, b] = [termNodes[i], termNodes[j]].sort()
             const key = `${a}:${b}`
             if (!map.has(key)) map.set(key, { from: a, to: b, rels: new Map() })
@@ -249,20 +196,27 @@ const plugin: PluginFactory = ({ React, ui, store, sdk, icons }) => {
             entry.rels.set(rel, (entry.rels.get(rel) || 0) + 1)
           }
       }
-      // Dla każdej pary wybierz dominujący typ relacji
-      const out: { from: string; to: string; strength: number; relation: string; count: number }[] = []
+      const out: GraphContextEdge[] = []
       for (const { from, to, rels } of map.values()) {
         let best = 'inne', bestCount = 0, total = 0
         for (const [r, c] of rels) { total += c; if (c > bestCount) { best = r; bestCount = c } }
         out.push({ from, to, relation: best, count: total, strength: Math.min(0.4 + total * 0.15, 0.9) })
       }
       return out
-    }, [discoveries, terms, visible, nidMap])
+    }, [discoveries, terms, nidMap])
 
-    // "Co dalej?" — węzeł-sugestia do wypulsowania
+    const hits = useMemo(() => {
+      const m: Record<string, number> = {}
+      for (const n of nodes) m[String(n.data.nodeId)] = Number(n.data.hits) || 0
+      return m
+    }, [nodes])
+
     const nextNid = useMemo(() => {
       const discNodeIds = new Set(nodes.filter(n => Number(n.data.hits) > 0).map(n => String(n.data.nodeId)))
-      if (!discNodeIds.size) return rootNid
+      if (!discNodeIds.size) {
+        const sorted = [...nodes].sort((a, b) => Number(a.data.tier) - Number(b.data.tier))
+        return sorted[0] ? String(sorted[0].data.nodeId) : null
+      }
       const scores = new Map<string, number>()
       for (const t of terms) {
         const tn = nidMap.get(t.id) || []
@@ -271,292 +225,27 @@ const plugin: PluginFactory = ({ React, ui, store, sdk, icons }) => {
       }
       let best = '', bs = 0
       for (const [k, v] of scores) if (v > bs) { best = k; bs = v }
-      return best || rootNid
-    }, [nodes, terms, rootNid, nidMap])
-
-    // theme colors (daisyUI 5 CSS vars)
-    const C = {
-      bg: 'var(--color-base-100)', surface: 'var(--color-base-200)', edge: 'var(--color-base-content)',
-      warn: 'var(--color-warning)', primary: 'var(--color-primary)',
-      text: 'var(--color-base-content)', muted: 'var(--color-base-300)',
-    }
-
-    const visNodes = useMemo(() => nodes.filter(n => visible.has(String(n.data.nodeId))), [nodes, visible])
-    const visEdges = useMemo(() => edges.filter(e => visible.has(e.from) && visible.has(e.to)), [edges, visible])
-
-    // ── d3-force: żywa konstelacja ─────────────────────────────────
-    // Idiom: React renderuje strukturę raz, d3 mutuje SVG attrs on tick (zero re-renderów)
-    const svgRef = useRef<SVGSVGElement>(null)
-    const gRef = useRef<SVGGElement>(null)
-    const simRef = useRef<Simulation<SimNode, SimLink> | null>(null)
-    const simNodesRef = useRef<Map<string, SimNode>>(new Map())
-    const zoomRef = useRef<ZoomBehavior<SVGSVGElement, unknown> | null>(null)
-
-    // Buduj/aktualizuj węzły symulacji — zachowuj pozycje istniejących
-    const simNodes = useMemo<SimNode[]>(() => {
-      const out: SimNode[] = []
-      const map = simNodesRef.current
-      for (const n of visNodes) {
-        const nid = String(n.data.nodeId)
-        const branch = String(n.data.branch || '')
-        const existing = map.get(nid)
-        const tier = Number(n.data.tier) || 0
-        if (existing) {
-          existing.tier = tier
-          existing.branch = branch
-          out.push(existing)
-        } else {
-          // Nowy węzeł — rozsuń lekko od centrum w losowym kierunku, ale na właściwym tierze
-          const angle = Math.random() * Math.PI * 2
-          const r = tier * 180 + 40
-          const node: SimNode = { id: n.id, nid, tier, branch, x: Math.cos(angle) * r, y: Math.sin(angle) * r }
-          map.set(nid, node)
-          out.push(node)
-        }
-      }
-      // Sprzątanie usuniętych
-      const visibleNids = new Set(visNodes.map(n => String(n.data.nodeId)))
-      for (const k of map.keys()) if (!visibleNids.has(k)) map.delete(k)
-      return out
-    }, [visNodes])
-
-    // Linki strukturalne (tier→tier) — siła trzymająca układ chronologiczny
-    const structLinks = useMemo<SimLink[]>(() =>
-      visEdges
-        .filter(e => simNodesRef.current.has(e.from) && simNodesRef.current.has(e.to))
-        .map(e => ({ source: e.from, target: e.to, kind: 'struct' as const })),
-      [visEdges]
-    )
-
-    // Linki kontekstowe (z odkrytych terminów) — TO przyciąga lektury które dzielą motywy
-    const contextLinks = useMemo<SimLink[]>(() =>
-      contextEdges
-        .filter(ce => simNodesRef.current.has(ce.from) && simNodesRef.current.has(ce.to))
-        .map(ce => ({ source: ce.from, target: ce.to, count: ce.count, relation: ce.relation, strength: ce.strength, kind: 'context' as const })),
-      [contextEdges]
-    )
-
-    // Linki bqFlash (świeżo odkryte przez reader) — chwilowo wzmocniona atrakcja
-    const flashLinks = useMemo<SimLink[]>(() =>
-      discoveredPairs
-        .filter(p => simNodesRef.current.has(p.fromNid) && simNodesRef.current.has(p.toNid))
-        .map(p => ({ source: p.fromNid, target: p.toNid, kind: 'flash' as const })),
-      [discoveredPairs]
-    )
-
-    // Tick handler: bezpośrednia mutacja DOM (zero React re-renderów)
-    const onTick = useCallback(() => {
-      const g = gRef.current; if (!g) return
-      // węzły
-      const nodeEls = g.querySelectorAll<SVGGElement>('.bq-node')
-      nodeEls.forEach(el => {
-        const nid = el.dataset.nid; if (!nid) return
-        const n = simNodesRef.current.get(nid); if (!n) return
-        el.setAttribute('transform', `translate(${n.x},${n.y})`)
-      })
-      // krawędzie (struct/context/flash) — wszystkie mają data-from i data-to
-      const edgeEls = g.querySelectorAll<SVGPathElement>('path[data-from]')
-      edgeEls.forEach(el => {
-        const a = simNodesRef.current.get(el.dataset.from || '')
-        const b = simNodesRef.current.get(el.dataset.to || '')
-        if (!a || !b) return
-        const mx = (a.x + b.x) / 2 + (b.y - a.y) * 0.12
-        const my = (a.y + b.y) / 2 - (b.x - a.x) * 0.12
-        el.setAttribute('d', `M${a.x},${a.y} Q${mx},${my} ${b.x},${b.y}`)
-      })
-      // labelki kontekstowe — środek krawędzi (rect+text z data-ctx)
-      const ctxLabels = g.querySelectorAll<SVGGElement>('g[data-ctx]')
-      ctxLabels.forEach(el => {
-        const a = simNodesRef.current.get(el.dataset.from || '')
-        const b = simNodesRef.current.get(el.dataset.to || '')
-        if (!a || !b) return
-        el.setAttribute('transform', `translate(${(a.x + b.x) / 2},${(a.y + b.y) / 2})`)
-      })
-    }, [])
-
-    // Inicjalizacja symulacji — tylko gdy zmienia się ZESTAW węzłów (porównanie po nidach)
-    const nidsKey = useMemo(() => simNodes.map(n => n.nid).sort().join(','), [simNodes])
-    useEffect(() => {
-      const root = simNodes.find(n => n.nid === rootNid)
-      if (root) { root.fx = 0; root.fy = 0 }
-
-      const sim = forceSimulation<SimNode, SimLink>(simNodes)
-        .force('link-struct', forceLink<SimNode, SimLink>(structLinks).id(d => d.nid).distance(140).strength(0.4))
-        .force('link-context', forceLink<SimNode, SimLink>(contextLinks).id(d => d.nid)
-          .distance(d => Math.max(60, 130 - (d.count || 1) * 8))
-          .strength(d => Math.min(0.15 + (d.count || 1) * 0.12, 0.7)))
-        .force('charge', forceManyBody().strength(-450))
-        .force('center', forceCenter(0, 0))
-        .force('radial', forceRadial<SimNode>(d => d.tier * 170, 0, 0).strength(0.12))
-        .force('collide', forceCollide<SimNode>(d => d.branch === 'epoki' ? 95 : 55))
-        .alphaDecay(0.05)
-        .alphaMin(0.01)
-        .on('tick', onTick)
-      simRef.current = sim
-      return () => { sim.stop(); simRef.current = null }
-      // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [nidsKey, rootNid])
-
-    // Aktualizuj linki strukturalne i kontekstowe gdy się zmieniają (bez resetu pozycji)
-    useEffect(() => {
-      const sim = simRef.current; if (!sim) return
-      const fStruct = sim.force('link-struct') as any
-      const fCtx = sim.force('link-context') as any
-      if (fStruct) fStruct.links(structLinks)
-      if (fCtx) fCtx.links(contextLinks)
-      sim.alpha(0.6).restart()
-    }, [structLinks, contextLinks])
-
-    // Restart simulation gdy bqFlash dorzuci nowy link — chwilowy "pulse" reorganizacji
-    useEffect(() => {
-      if (flashLinks.length === 0) return
-      simRef.current?.alpha(0.8).restart()
-    }, [flashLinks])
-
-    // d3-zoom: pan + zoom + touch wbudowane
-    useEffect(() => {
-      if (!svgRef.current || !gRef.current) return
-      const svgSel = select(svgRef.current)
-      const gSel = select(gRef.current)
-      const z = d3zoom<SVGSVGElement, unknown>()
-        .scaleExtent([0.3, 2.5])
-        .on('zoom', e => gSel.attr('transform', e.transform.toString()))
-      svgSel.call(z)
-      // Wyśrodkuj graf: (0,0) w world coords trafia na środek SVG
-      const rect = svgRef.current.getBoundingClientRect()
-      svgSel.call(z.transform, zoomIdentity.translate(rect.width / 2, rect.height / 2).scale(0.8))
-      zoomRef.current = z
-      return () => { svgSel.on('.zoom', null) }
-    }, [])
-
-    // Płynne dojechanie kamery do wybranego węzła
-    useEffect(() => {
-      if (!sel || !svgRef.current || !zoomRef.current) return
-      const node = simNodes.find(n => n.id === sel)
-      if (!node) return
-      const svgSel = select(svgRef.current)
-      const rect = svgRef.current.getBoundingClientRect()
-      svgSel.transition().duration(600)
-        .call(zoomRef.current.transform, zoomIdentity.translate(rect.width / 2 - node.x * 0.9, rect.height / 2 - node.y * 0.9).scale(0.9))
-    }, [sel, simNodes])
-
-    // d3-drag na węzłach: subject czyta data-nid z elementu (zero data-binding)
-    useEffect(() => {
-      if (!gRef.current) return
-      const dragBeh = d3drag<SVGGElement, unknown>()
-        .clickDistance(5) // pozwól na małe ruchy bez zjadania kliknięcia
-        .subject(function () {
-          const nid = (this as SVGGElement).dataset.nid
-          return nid ? simNodesRef.current.get(nid) : null
-        })
-        .on('start', (e: any) => {
-          if (!e.subject) return
-          if (!e.active) simRef.current?.alphaTarget(0.3).restart()
-          e.subject.fx = e.subject.x
-          e.subject.fy = e.subject.y
-        })
-        .on('drag', (e: any) => {
-          if (!e.subject) return
-          e.subject.fx = e.x
-          e.subject.fy = e.y
-        })
-        .on('end', (e: any) => {
-          if (!e.subject) return
-          if (!e.active) simRef.current?.alphaTarget(0)
-          if (e.subject.nid !== rootNid) { e.subject.fx = null; e.subject.fy = null }
-        })
-      select(gRef.current).selectAll<SVGGElement, unknown>('.bq-node').call(dragBeh as any)
-    }, [simNodes, rootNid])
-
-    // Pomocniczy lookup początkowej pozycji (pierwszy render — tick przepisze)
-    const posOf = (nid: string) => simNodesRef.current.get(nid) || { x: 0, y: 0 }
+      return best || null
+    }, [nodes, terms, nidMap])
 
     if (!treeId) return <ui.Placeholder text="Wybierz drzewo z listy" />
     if (!nodes.length) return <ui.Placeholder text="Zaimportuj paczkę bazową" />
 
     return (
-        <svg ref={svgRef} style={{ width: '100%', height: '100%', cursor: 'grab', userSelect: 'none', display: 'block', touchAction: 'none', background: C.bg }}>
-          <defs>
-            <filter id="glow"><feGaussianBlur stdDeviation="4" result="blur" /><feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge></filter>
-            <filter id="shadow" x="-50%" y="-50%" width="200%" height="200%">
-              <feDropShadow dx="0" dy="3" stdDeviation="2" floodOpacity="0.25" />
-            </filter>
-          </defs>
-          <g ref={gRef}>
-            {/* structural edges — krzywe bezier, subtelne */}
-            {visEdges.map((e, i) => (
-              <path key={`s${i}`} data-from={e.from} data-to={e.to} d="" fill="none" style={{ stroke: C.edge }} strokeWidth={6} strokeLinecap="round" opacity={0.1} />
-            ))}
-
-            {/* context edges — kolor per typ relacji, krzywe */}
-            {contextEdges.map((ce, i) => {
-              const rd = relDef(ce.relation)
-              const col = tok(rd.color)
-              const label = `${rd.label}${ce.count > 1 ? ` ·${ce.count}` : ''}`
-              const lw = label.length * 4.2 + 8
-              return <g key={`ctx-${i}`}>
-                <path data-from={ce.from} data-to={ce.to} d="" fill="none" style={{ stroke: col }} strokeWidth={3 + Math.min(ce.count, 3)} strokeLinecap="round" opacity={ce.strength * 0.75} filter="url(#glow)" />
-                <g data-ctx data-from={ce.from} data-to={ce.to}>
-                  <rect x={-lw / 2} y={-7} width={lw} height={12} rx={6} style={{ fill: C.bg, stroke: col }} strokeWidth={1} opacity={0.95} />
-                  <text y={2} textAnchor="middle" style={{ fill: col, pointerEvents: 'none', fontWeight: 600 }} fontSize={8}>{label}</text>
-                </g>
-              </g>
-            })}
-
-            {/* odkryte połączenia z readera (flash) */}
-            {discoveredPairs.map((pair, i) => (
-              <path key={`dp-${i}`} data-from={pair.fromNid} data-to={pair.toNid} d="" fill="none" style={{ stroke: C.warn }}
-                strokeWidth={pair.fresh ? 6 : 4} strokeLinecap="round" opacity={pair.fresh ? 0.9 : 0.55} filter="url(#glow)">
-                {pair.fresh && <animate attributeName="opacity" values="1;0.4;1;0.9" dur="1s" repeatCount="3" fill="freeze" />}
-              </path>
-            ))}
-
-            {/* nodes — Duolingo-style: grube, z elevation, duże ikony */}
-            {visNodes.map(n => {
-              const nid = String(n.data.nodeId), p = posOf(nid)
-              const s = str(n), disc = discovered.has(nid), front = frontier.has(nid), mast = s >= 1
-              const isNext = nid === nextNid && !disc
-              const isSel = sel === n.id
-              const isEpoka = String(n.data.branch) === 'epoki'
-              const r = (mast ? 42 : disc ? 38 : 34) + (isEpoka ? 16 : 0)
-              const bc = tok(branches[String(n.data.branch)]?.color || 'neutral')
-              const fill = disc ? bc : C.surface
-              const ringCol = disc ? bc : C.muted
-              return (
-                <g key={n.id} className="bq-node" data-nid={nid} transform={`translate(${p.x},${p.y})`} onClick={() => {
-                  useNav.setState({ sel: n.id, phase: 'detail' })
-                  sdk.shared.setState({ bq: { treeId, nodeId: nid, postId: n.id } })
-                  setRevealed(prev => new Set(prev).add(nid))
-                }} style={{ cursor: 'pointer' }}>
-                  {isSel && <circle r={r + 10} fill="none" style={{ stroke: C.primary }} strokeWidth={3} opacity={0.7} />}
-                  {isNext && [0, 0.7, 1.4].map((delay, k) => (
-                    <circle key={`sonar-${k}`} r={r} fill="none" style={{ stroke: C.primary }} strokeWidth={7}>
-                      <animate attributeName="r" values={`${r};${r + 34}`} dur="2.1s" begin={`${delay}s`} repeatCount="indefinite" />
-                      <animate attributeName="opacity" values="1;0" dur="2.1s" begin={`${delay}s`} repeatCount="indefinite" />
-                      <animate attributeName="stroke-width" values="7;1" dur="2.1s" begin={`${delay}s`} repeatCount="indefinite" />
-                    </circle>
-                  ))}
-                  <circle cy={4} r={r} style={{ fill: C.edge }} opacity={0.15} />
-                  <circle r={r} style={{ fill, stroke: ringCol }} strokeWidth={disc ? 4 : 3} filter="url(#shadow)">
-                    {disc && !mast && <animate attributeName="r" values={`${r};${r+3};${r}`} dur="2s" repeatCount="1" />}
-                  </circle>
-                  {mast && <circle r={r - 6} fill="none" style={{ stroke: C.bg }} strokeWidth={3} opacity={0.6} />}
-                  {mast ? (
-                    <text y={9} textAnchor="middle" fontSize={30} style={{ fill: C.bg, fontWeight: 700, pointerEvents: 'none' }}>★</text>
-                  ) : disc ? (
-                    <text y={7} textAnchor="middle" fontSize={20} style={{ fill: C.bg, fontWeight: 700, pointerEvents: 'none' }}>{Number(n.data.hits) || 0}</text>
-                  ) : (
-                    <text y={8} textAnchor="middle" fontSize={24} style={{ fill: C.muted, fontWeight: 700, pointerEvents: 'none' }}>{front ? '＋' : '🔒'}</text>
-                  )}
-                  <text y={r + 18} textAnchor="middle" style={{ fill: C.text, fontWeight: disc ? 700 : 500, pointerEvents: 'none' }}
-                    fontSize={13} opacity={disc ? 1 : revealed.has(nid) ? 0.6 : 0.35}>
-                    {disc || revealed.has(nid) ? String(n.data.title).slice(0, 18) : '???'}
-                  </text>
-                </g>
-              )
-            })}
-          </g>
-        </svg>
+      <KnowledgeGraph
+        nodes={graphNodes}
+        edges={graphEdges}
+        contextEdges={graphContextEdges}
+        branches={graphBranches}
+        relTypes={graphRelTypes}
+        selectedId={sel}
+        onSelectNode={n => {
+          useNav.setState({ sel: n.id, phase: 'detail' })
+          sdk.shared.setState({ bq: { treeId, nodeId: n.nid, postId: n.id } })
+        }}
+        progress={{ hits, flashPairs: discoveredPairs, nextNid }}
+        bigBranches={['epoki']}
+      />
     )
   }
 
@@ -651,8 +340,6 @@ const plugin: PluginFactory = ({ React, ui, store, sdk, icons }) => {
     }, { parentId: treeId }).id
     const nodes: string[] = jparse<string[]>(String(data.nodes || '[]'), [])
     for (const nid of nodes) store.add('lexNode', { nid }, { parentId: lexId })
-    const forms: string[] = jparse<string[]>(String(data.forms || '[]'), [])
-    for (const v of forms) if (v) store.add('form', { value: v }, { parentId: lexId })
     const quiz = jparse<{ question?: string; answer?: string; wrong?: string[]; hint?: string }>(String(data.quiz || '{}'), {})
     if (quiz.question || quiz.answer) {
       store.add('quiz', {

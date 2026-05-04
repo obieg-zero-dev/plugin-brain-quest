@@ -1,4 +1,5 @@
-import { jsxs, Fragment, jsx } from "react/jsx-runtime";
+import { jsx, Fragment, jsxs } from "react/jsx-runtime";
+import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 function forceCenter(x2, y2) {
   var nodes, strength = 1;
   if (x2 == null) x2 = 0;
@@ -3328,10 +3329,327 @@ function d3zoom() {
   };
   return zoom;
 }
+const FALLBACK_REL = { key: "inne", label: "inne", color: "neutral" };
+const DAISY_TOKENS = /* @__PURE__ */ new Set(["primary", "secondary", "accent", "info", "success", "warning", "error", "neutral", "base-100", "base-200", "base-300", "base-content"]);
+const tok = (name) => {
+  if (!name) return "var(--color-neutral)";
+  if (name.startsWith("#") || name.startsWith("var(") || name.startsWith("rgb")) return name;
+  if (DAISY_TOKENS.has(name)) return `var(--color-${name})`;
+  return "var(--color-neutral)";
+};
+function KnowledgeGraph(props) {
+  var _a, _b, _c;
+  const gating = !!props.progress;
+  const hits = ((_a = props.progress) == null ? void 0 : _a.hits) ?? {};
+  const flashPairs = ((_b = props.progress) == null ? void 0 : _b.flashPairs) ?? [];
+  const nextNid = ((_c = props.progress) == null ? void 0 : _c.nextNid) ?? null;
+  const [revealed, setRevealed] = useState(() => /* @__PURE__ */ new Set());
+  useEffect(() => {
+    setRevealed(/* @__PURE__ */ new Set());
+  }, [props.nodes.length === 0]);
+  const bigBranchSet = useMemo(() => new Set(props.bigBranches ?? []), [props.bigBranches]);
+  const branchMap = useMemo(() => {
+    const m2 = {};
+    for (const b of props.branches) m2[b.key] = b;
+    return m2;
+  }, [props.branches]);
+  const relMap = useMemo(() => {
+    const m2 = {};
+    for (const r of props.relTypes) m2[r.key] = r;
+    return m2;
+  }, [props.relTypes]);
+  const relDef = (k) => relMap[k] || FALLBACK_REL;
+  const adj = useMemo(() => {
+    const a2 = /* @__PURE__ */ new Map();
+    for (const e of props.edges) {
+      if (!a2.has(e.from)) a2.set(e.from, /* @__PURE__ */ new Set());
+      if (!a2.has(e.to)) a2.set(e.to, /* @__PURE__ */ new Set());
+      a2.get(e.from).add(e.to);
+      a2.get(e.to).add(e.from);
+    }
+    return a2;
+  }, [props.edges]);
+  const { visible, frontier, discovered } = useMemo(() => {
+    if (!gating) {
+      const all = new Set(props.nodes.map((n) => n.nid));
+      return { visible: all, frontier: /* @__PURE__ */ new Set(), discovered: all };
+    }
+    const disc = /* @__PURE__ */ new Set();
+    for (const n of props.nodes) if ((hits[n.nid] || 0) > 0) disc.add(n.nid);
+    if (!disc.size) {
+      const root2 = [...props.nodes].sort((a2, b) => a2.tier - b.tier)[0];
+      if (root2) return { visible: /* @__PURE__ */ new Set([root2.nid]), frontier: /* @__PURE__ */ new Set([root2.nid]), discovered: disc };
+      return { visible: /* @__PURE__ */ new Set(), frontier: /* @__PURE__ */ new Set(), discovered: disc };
+    }
+    const vis = new Set(disc);
+    const front = /* @__PURE__ */ new Set();
+    for (const nid of disc) for (const nb of adj.get(nid) || []) if (!disc.has(nb)) {
+      vis.add(nb);
+      front.add(nb);
+    }
+    return { visible: vis, frontier: front, discovered: disc };
+  }, [gating, props.nodes, hits, adj]);
+  const rootNid = useMemo(() => {
+    var _a2;
+    if (props.rootNid) return props.rootNid;
+    const sorted = [...props.nodes].sort((a2, b) => a2.tier - b.tier);
+    return ((_a2 = sorted[0]) == null ? void 0 : _a2.nid) ?? null;
+  }, [props.nodes, props.rootNid]);
+  const visNodes = useMemo(() => props.nodes.filter((n) => visible.has(n.nid)), [props.nodes, visible]);
+  const visEdges = useMemo(() => props.edges.filter((e) => visible.has(e.from) && visible.has(e.to)), [props.edges, visible]);
+  const visCtxEdges = useMemo(() => props.contextEdges.filter((e) => visible.has(e.from) && visible.has(e.to)), [props.contextEdges, visible]);
+  const visFlashPairs = useMemo(() => flashPairs.filter((p) => visible.has(p.fromNid) && visible.has(p.toNid)), [flashPairs, visible]);
+  const C = {
+    bg: "var(--color-base-100)",
+    surface: "var(--color-base-200)",
+    edge: "var(--color-base-content)",
+    warn: "var(--color-warning)",
+    primary: "var(--color-primary)",
+    text: "var(--color-base-content)",
+    muted: "var(--color-base-300)"
+  };
+  const svgRef = useRef(null);
+  const gRef = useRef(null);
+  const simRef = useRef(null);
+  const simNodesRef = useRef(/* @__PURE__ */ new Map());
+  const zoomRef = useRef(null);
+  const simNodes = useMemo(() => {
+    const out = [];
+    const map = simNodesRef.current;
+    for (const n of visNodes) {
+      const nid = n.nid;
+      const branch = n.branch;
+      const tier = n.tier || 0;
+      const existing = map.get(nid);
+      if (existing) {
+        existing.tier = tier;
+        existing.branch = branch;
+        existing.title = n.title;
+        existing.id = n.id;
+        out.push(existing);
+      } else {
+        const angle = Math.random() * Math.PI * 2;
+        const r = tier * 180 + 40;
+        const node = { id: n.id, nid, tier, branch, title: n.title, x: Math.cos(angle) * r, y: Math.sin(angle) * r };
+        map.set(nid, node);
+        out.push(node);
+      }
+    }
+    const visibleNids = new Set(visNodes.map((n) => n.nid));
+    for (const k of map.keys()) if (!visibleNids.has(k)) map.delete(k);
+    return out;
+  }, [visNodes]);
+  const structLinks = useMemo(
+    () => visEdges.filter((e) => simNodesRef.current.has(e.from) && simNodesRef.current.has(e.to)).map((e) => ({ source: e.from, target: e.to, kind: "struct" })),
+    [visEdges]
+  );
+  const contextLinks = useMemo(
+    () => visCtxEdges.filter((ce) => simNodesRef.current.has(ce.from) && simNodesRef.current.has(ce.to)).map((ce) => ({ source: ce.from, target: ce.to, count: ce.count, relation: ce.relation, strength: ce.strength, kind: "context" })),
+    [visCtxEdges]
+  );
+  const flashLinks = useMemo(
+    () => visFlashPairs.filter((p) => simNodesRef.current.has(p.fromNid) && simNodesRef.current.has(p.toNid)).map((p) => ({ source: p.fromNid, target: p.toNid, kind: "flash" })),
+    [visFlashPairs]
+  );
+  const onTick = useCallback(() => {
+    const g = gRef.current;
+    if (!g) return;
+    const nodeEls = g.querySelectorAll(".bq-node");
+    nodeEls.forEach((el) => {
+      const nid = el.dataset.nid;
+      if (!nid) return;
+      const n = simNodesRef.current.get(nid);
+      if (!n) return;
+      el.setAttribute("transform", `translate(${n.x},${n.y})`);
+    });
+    const edgeEls = g.querySelectorAll("path[data-from]");
+    edgeEls.forEach((el) => {
+      const a2 = simNodesRef.current.get(el.dataset.from || "");
+      const b = simNodesRef.current.get(el.dataset.to || "");
+      if (!a2 || !b) return;
+      const mx = (a2.x + b.x) / 2 + (b.y - a2.y) * 0.12;
+      const my = (a2.y + b.y) / 2 - (b.x - a2.x) * 0.12;
+      el.setAttribute("d", `M${a2.x},${a2.y} Q${mx},${my} ${b.x},${b.y}`);
+    });
+    const ctxLabels = g.querySelectorAll("g[data-ctx]");
+    ctxLabels.forEach((el) => {
+      const a2 = simNodesRef.current.get(el.dataset.from || "");
+      const b = simNodesRef.current.get(el.dataset.to || "");
+      if (!a2 || !b) return;
+      el.setAttribute("transform", `translate(${(a2.x + b.x) / 2},${(a2.y + b.y) / 2})`);
+    });
+  }, []);
+  const nidsKey = useMemo(() => simNodes.map((n) => n.nid).sort().join(","), [simNodes]);
+  useEffect(() => {
+    const root2 = simNodes.find((n) => n.nid === rootNid);
+    if (root2) {
+      root2.fx = 0;
+      root2.fy = 0;
+    }
+    const sim = forceSimulation(simNodes).force("link-struct", forceLink(structLinks).id((d) => d.nid).distance(140).strength(0.4)).force("link-context", forceLink(contextLinks).id((d) => d.nid).distance((d) => Math.max(60, 130 - (d.count || 1) * 8)).strength((d) => Math.min(0.15 + (d.count || 1) * 0.12, 0.7))).force("charge", forceManyBody().strength(-450)).force("center", forceCenter(0, 0)).force("radial", forceRadial((d) => d.tier * 170, 0, 0).strength(0.12)).force("collide", forceCollide((d) => bigBranchSet.has(d.branch) ? 95 : 55)).alphaDecay(0.05).alphaMin(0.01).on("tick", onTick);
+    simRef.current = sim;
+    return () => {
+      sim.stop();
+      simRef.current = null;
+    };
+  }, [nidsKey, rootNid]);
+  useEffect(() => {
+    const sim = simRef.current;
+    if (!sim) return;
+    const fStruct = sim.force("link-struct");
+    const fCtx = sim.force("link-context");
+    if (fStruct) fStruct.links(structLinks);
+    if (fCtx) fCtx.links(contextLinks);
+    sim.alpha(0.6).restart();
+  }, [structLinks, contextLinks]);
+  useEffect(() => {
+    var _a2;
+    if (flashLinks.length === 0) return;
+    (_a2 = simRef.current) == null ? void 0 : _a2.alpha(0.8).restart();
+  }, [flashLinks]);
+  useEffect(() => {
+    if (!svgRef.current || !gRef.current) return;
+    const svgSel = select(svgRef.current);
+    const gSel = select(gRef.current);
+    const z = d3zoom().scaleExtent([0.3, 2.5]).on("zoom", (e) => gSel.attr("transform", e.transform.toString()));
+    svgSel.call(z);
+    const rect = svgRef.current.getBoundingClientRect();
+    svgSel.call(z.transform, identity.translate(rect.width / 2, rect.height / 2).scale(0.8));
+    zoomRef.current = z;
+    return () => {
+      svgSel.on(".zoom", null);
+    };
+  }, []);
+  useEffect(() => {
+    const sel = props.selectedId;
+    if (!sel || !svgRef.current || !zoomRef.current) return;
+    const node = simNodes.find((n) => n.id === sel);
+    if (!node) return;
+    const svgSel = select(svgRef.current);
+    const rect = svgRef.current.getBoundingClientRect();
+    svgSel.transition().duration(600).call(zoomRef.current.transform, identity.translate(rect.width / 2 - node.x * 0.9, rect.height / 2 - node.y * 0.9).scale(0.9));
+  }, [props.selectedId, simNodes]);
+  useEffect(() => {
+    if (!gRef.current) return;
+    const dragBeh = d3drag().clickDistance(5).subject(function() {
+      const nid = this.dataset.nid;
+      return nid ? simNodesRef.current.get(nid) : null;
+    }).on("start", (e) => {
+      var _a2;
+      if (!e.subject) return;
+      if (!e.active) (_a2 = simRef.current) == null ? void 0 : _a2.alphaTarget(0.3).restart();
+      e.subject.fx = e.subject.x;
+      e.subject.fy = e.subject.y;
+    }).on("drag", (e) => {
+      if (!e.subject) return;
+      e.subject.fx = e.x;
+      e.subject.fy = e.y;
+    }).on("end", (e) => {
+      var _a2;
+      if (!e.subject) return;
+      if (!e.active) (_a2 = simRef.current) == null ? void 0 : _a2.alphaTarget(0);
+      if (e.subject.nid !== rootNid) {
+        e.subject.fx = null;
+        e.subject.fy = null;
+      }
+    });
+    select(gRef.current).selectAll(".bq-node").call(dragBeh);
+  }, [simNodes, rootNid]);
+  const posOf = (nid) => simNodesRef.current.get(nid) || { x: 0, y: 0 };
+  if (!props.nodes.length) return /* @__PURE__ */ jsx(Fragment, { children: props.placeholder ?? null });
+  return /* @__PURE__ */ jsxs("svg", { ref: svgRef, style: { width: "100%", height: "100%", cursor: "grab", userSelect: "none", display: "block", touchAction: "none", background: C.bg }, children: [
+    /* @__PURE__ */ jsxs("defs", { children: [
+      /* @__PURE__ */ jsxs("filter", { id: "bq-glow", children: [
+        /* @__PURE__ */ jsx("feGaussianBlur", { stdDeviation: "4", result: "blur" }),
+        /* @__PURE__ */ jsxs("feMerge", { children: [
+          /* @__PURE__ */ jsx("feMergeNode", { in: "blur" }),
+          /* @__PURE__ */ jsx("feMergeNode", { in: "SourceGraphic" })
+        ] })
+      ] }),
+      /* @__PURE__ */ jsx("filter", { id: "bq-shadow", x: "-50%", y: "-50%", width: "200%", height: "200%", children: /* @__PURE__ */ jsx("feDropShadow", { dx: "0", dy: "3", stdDeviation: "2", floodOpacity: "0.25" }) })
+    ] }),
+    /* @__PURE__ */ jsxs("g", { ref: gRef, children: [
+      visEdges.map((e, i) => /* @__PURE__ */ jsx("path", { "data-from": e.from, "data-to": e.to, d: "", fill: "none", style: { stroke: C.edge }, strokeWidth: 6, strokeLinecap: "round", opacity: 0.1 }, `s${i}`)),
+      visCtxEdges.map((ce, i) => {
+        const rd = relDef(ce.relation);
+        const col = tok(rd.color);
+        const label = `${rd.label}${ce.count > 1 ? ` ·${ce.count}` : ""}`;
+        const lw = label.length * 4.2 + 8;
+        return /* @__PURE__ */ jsxs("g", { children: [
+          /* @__PURE__ */ jsx("path", { "data-from": ce.from, "data-to": ce.to, d: "", fill: "none", style: { stroke: col }, strokeWidth: 3 + Math.min(ce.count, 3), strokeLinecap: "round", opacity: ce.strength * 0.75, filter: "url(#bq-glow)" }),
+          /* @__PURE__ */ jsxs("g", { "data-ctx": true, "data-from": ce.from, "data-to": ce.to, children: [
+            /* @__PURE__ */ jsx("rect", { x: -lw / 2, y: -7, width: lw, height: 12, rx: 6, style: { fill: C.bg, stroke: col }, strokeWidth: 1, opacity: 0.95 }),
+            /* @__PURE__ */ jsx("text", { y: 2, textAnchor: "middle", style: { fill: col, pointerEvents: "none", fontWeight: 600 }, fontSize: 8, children: label })
+          ] })
+        ] }, `ctx-${i}`);
+      }),
+      visFlashPairs.map((pair, i) => /* @__PURE__ */ jsx(
+        "path",
+        {
+          "data-from": pair.fromNid,
+          "data-to": pair.toNid,
+          d: "",
+          fill: "none",
+          style: { stroke: C.warn },
+          strokeWidth: pair.fresh ? 6 : 4,
+          strokeLinecap: "round",
+          opacity: pair.fresh ? 0.9 : 0.55,
+          filter: "url(#bq-glow)",
+          children: pair.fresh && /* @__PURE__ */ jsx("animate", { attributeName: "opacity", values: "1;0.4;1;0.9", dur: "1s", repeatCount: "3", fill: "freeze" })
+        },
+        `dp-${i}`
+      )),
+      visNodes.map((n) => {
+        var _a2;
+        const nid = n.nid, p = posOf(nid);
+        const h = hits[nid] || 0;
+        const s = Math.min(h / 5, 1);
+        const disc = !gating || discovered.has(nid);
+        const front = gating && frontier.has(nid);
+        const mast = gating && s >= 1;
+        const isNext = gating && nid === nextNid && !discovered.has(nid);
+        const isSel = props.selectedId === n.id;
+        const big = bigBranchSet.has(n.branch);
+        const r = (mast ? 42 : disc ? 38 : 34) + (big ? 16 : 0);
+        const bc = tok(((_a2 = branchMap[n.branch]) == null ? void 0 : _a2.color) || "neutral");
+        const fill = disc ? bc : C.surface;
+        const ringCol = disc ? bc : C.muted;
+        const titleVisible = !gating || disc || revealed.has(nid);
+        return /* @__PURE__ */ jsxs("g", { className: "bq-node", "data-nid": nid, transform: `translate(${p.x},${p.y})`, onClick: () => {
+          var _a3;
+          if (gating) setRevealed((prev) => new Set(prev).add(nid));
+          (_a3 = props.onSelectNode) == null ? void 0 : _a3.call(props, n);
+        }, style: { cursor: "pointer" }, children: [
+          isSel && /* @__PURE__ */ jsx("circle", { r: r + 10, fill: "none", style: { stroke: C.primary }, strokeWidth: 3, opacity: 0.7 }),
+          isNext && [0, 0.7, 1.4].map((delay, k) => /* @__PURE__ */ jsxs("circle", { r, fill: "none", style: { stroke: C.primary }, strokeWidth: 7, children: [
+            /* @__PURE__ */ jsx("animate", { attributeName: "r", values: `${r};${r + 34}`, dur: "2.1s", begin: `${delay}s`, repeatCount: "indefinite" }),
+            /* @__PURE__ */ jsx("animate", { attributeName: "opacity", values: "1;0", dur: "2.1s", begin: `${delay}s`, repeatCount: "indefinite" }),
+            /* @__PURE__ */ jsx("animate", { attributeName: "stroke-width", values: "7;1", dur: "2.1s", begin: `${delay}s`, repeatCount: "indefinite" })
+          ] }, `sonar-${k}`)),
+          /* @__PURE__ */ jsx("circle", { cy: 4, r, style: { fill: C.edge }, opacity: 0.15 }),
+          /* @__PURE__ */ jsx("circle", { r, style: { fill, stroke: ringCol }, strokeWidth: disc ? 4 : 3, filter: "url(#bq-shadow)", children: gating && disc && !mast && /* @__PURE__ */ jsx("animate", { attributeName: "r", values: `${r};${r + 3};${r}`, dur: "2s", repeatCount: "1" }) }),
+          mast && /* @__PURE__ */ jsx("circle", { r: r - 6, fill: "none", style: { stroke: C.bg }, strokeWidth: 3, opacity: 0.6 }),
+          gating ? mast ? /* @__PURE__ */ jsx("text", { y: 9, textAnchor: "middle", fontSize: 30, style: { fill: C.bg, fontWeight: 700, pointerEvents: "none" }, children: "★" }) : disc ? /* @__PURE__ */ jsx("text", { y: 7, textAnchor: "middle", fontSize: 20, style: { fill: C.bg, fontWeight: 700, pointerEvents: "none" }, children: h }) : /* @__PURE__ */ jsx("text", { y: 8, textAnchor: "middle", fontSize: 24, style: { fill: C.muted, fontWeight: 700, pointerEvents: "none" }, children: front ? "＋" : "🔒" }) : /* @__PURE__ */ jsx("text", { y: 6, textAnchor: "middle", fontSize: 14, style: { fill: C.bg, fontWeight: 700, pointerEvents: "none" }, children: n.tier ?? "" }),
+          /* @__PURE__ */ jsx(
+            "text",
+            {
+              y: r + 18,
+              textAnchor: "middle",
+              style: { fill: C.text, fontWeight: disc ? 700 : 500, pointerEvents: "none" },
+              fontSize: 13,
+              opacity: disc ? 1 : revealed.has(nid) ? 0.6 : 0.35,
+              children: titleVisible ? String(n.title).slice(0, 18) : "???"
+            }
+          )
+        ] }, n.id);
+      })
+    ] })
+  ] });
+}
 const GH_API = "https://api.github.com";
 const GH_RAW = "https://raw.githubusercontent.com";
 const plugin = ({ React, ui, store, sdk, icons }) => {
-  const { useState, useMemo, useCallback, useRef, useEffect } = React;
+  const { useState: useState2, useMemo: useMemo2, useEffect: useEffect2 } = React;
   const { Award, X, Zap, BookOpen } = icons;
   store.registerType("tree", [
     { key: "title", label: "Tytuł", required: true },
@@ -3373,9 +3691,6 @@ const plugin = ({ React, ui, store, sdk, icons }) => {
   store.registerType("lexNode", [
     { key: "nid", label: "NodeId", required: true }
   ], "Powiązania term↔węzeł");
-  store.registerType("form", [
-    { key: "value", label: "Forma", required: true }
-  ], "Formy gramatyczne");
   store.registerType("quiz", [
     { key: "question", label: "Pytanie", required: true },
     { key: "answer", label: "Odpowiedź", required: true },
@@ -3384,14 +3699,6 @@ const plugin = ({ React, ui, store, sdk, icons }) => {
     { key: "wrong3", label: "Dystraktor 3" },
     { key: "hint", label: "Wskazówka" }
   ], "Quizy");
-  const FALLBACK_REL = { label: "inne", color: "neutral" };
-  const DAISY_TOKENS = /* @__PURE__ */ new Set(["primary", "secondary", "accent", "info", "success", "warning", "error", "neutral", "base-100", "base-200", "base-300", "base-content"]);
-  const tok = (name) => {
-    if (!name) return "var(--color-neutral)";
-    if (name.startsWith("#") || name.startsWith("var(") || name.startsWith("rgb")) return name;
-    if (DAISY_TOKENS.has(name)) return `var(--color-${name})`;
-    return "var(--color-neutral)";
-  };
   store.registerType("discovery", [
     { key: "termId", label: "Termin", required: true },
     { key: "hits", label: "Odkrycia" },
@@ -3420,11 +3727,10 @@ const plugin = ({ React, ui, store, sdk, icons }) => {
   };
   const useLexMaps = () => {
     const lexNodes = store.usePosts("lexNode");
-    const forms = store.usePosts("form");
     const quizzes = store.usePosts("quiz");
-    return useMemo(() => buildLexMaps(lexNodes, forms, quizzes), [lexNodes, forms, quizzes]);
+    return useMemo2(() => buildLexMaps(lexNodes, quizzes), [lexNodes, quizzes]);
   };
-  const buildLexMaps = (lexNodes, forms, quizzes) => {
+  const buildLexMaps = (lexNodes, quizzes) => {
     const nidMap = /* @__PURE__ */ new Map();
     for (const ln of lexNodes) {
       const lid = ln.parentId || "";
@@ -3433,20 +3739,12 @@ const plugin = ({ React, ui, store, sdk, icons }) => {
       arr.push(String(ln.data.nid));
       nidMap.set(lid, arr);
     }
-    const formMap = /* @__PURE__ */ new Map();
-    for (const f of forms) {
-      const lid = f.parentId || "";
-      if (!lid) continue;
-      const arr = formMap.get(lid) || [];
-      arr.push(String(f.data.value));
-      formMap.set(lid, arr);
-    }
     const quizMap = /* @__PURE__ */ new Map();
     for (const q of quizzes) {
       const lid = q.parentId || "";
       if (lid) quizMap.set(lid, q);
     }
-    return { nidMap, formMap, quizMap };
+    return { nidMap, quizMap };
   };
   const useNav = sdk.create(() => ({
     treeId: null,
@@ -3462,19 +3760,14 @@ const plugin = ({ React, ui, store, sdk, icons }) => {
     }
   };
   function SkillTree() {
-    const { treeId, sel, phase } = useNav();
-    store.usePost(treeId || "");
+    const { treeId, sel } = useNav();
     const nodes = store.useChildren(treeId || "", "node");
-    const [revealed, setRevealed] = useState(() => /* @__PURE__ */ new Set());
-    useEffect(() => {
-      setRevealed(/* @__PURE__ */ new Set());
-    }, [treeId]);
     const flash = sdk.shared((s) => s == null ? void 0 : s.bqFlash);
-    const [discoveredPairs, setDiscoveredPairs] = useState([]);
-    useEffect(() => {
+    const [discoveredPairs, setDiscoveredPairs] = useState2([]);
+    useEffect2(() => {
       setDiscoveredPairs([]);
     }, [treeId]);
-    useEffect(() => {
+    useEffect2(() => {
       if (!flash || !flash.fromNid || !flash.toNid) return;
       const fromNid = flash.fromNid, toNid = flash.toNid;
       setDiscoveredPairs((prev) => {
@@ -3487,52 +3780,31 @@ const plugin = ({ React, ui, store, sdk, icons }) => {
     const edgeRecords = store.useChildren(treeId || "", "edge");
     const branchRecords = store.useChildren(treeId || "", "branch");
     const relTypeRecords = store.useChildren(treeId || "", "relType");
-    const edges = useMemo(() => edgeRecords.map((e) => ({ from: String(e.data.fromNid), to: String(e.data.toNid) })), [edgeRecords]);
-    const branches = useMemo(() => {
-      const m2 = {};
-      for (const b of branchRecords) m2[String(b.data.key)] = { label: String(b.data.label), color: String(b.data.color || "neutral") };
-      return m2;
-    }, [branchRecords]);
-    const relations = useMemo(() => {
-      const m2 = {};
-      for (const r of relTypeRecords) m2[String(r.data.key)] = { label: String(r.data.label), color: String(r.data.color || "neutral") };
-      return m2;
-    }, [relTypeRecords]);
-    const relDef = (r) => relations[r] || FALLBACK_REL;
-    const adj = useMemo(() => {
-      const a2 = /* @__PURE__ */ new Map();
-      for (const e of edges) {
-        if (!a2.has(e.from)) a2.set(e.from, /* @__PURE__ */ new Set());
-        if (!a2.has(e.to)) a2.set(e.to, /* @__PURE__ */ new Set());
-        a2.get(e.from).add(e.to);
-        a2.get(e.to).add(e.from);
-      }
-      return a2;
-    }, [edges]);
-    const { visible, frontier, discovered } = useMemo(() => {
-      const disc = /* @__PURE__ */ new Set();
-      for (const n of nodes) if (Number(n.data.hits) > 0) disc.add(String(n.data.nodeId));
-      if (!disc.size) {
-        const root2 = [...nodes].sort((a2, b) => Number(a2.data.tier) - Number(b.data.tier))[0];
-        if (root2) return { visible: /* @__PURE__ */ new Set([String(root2.data.nodeId)]), frontier: /* @__PURE__ */ new Set([String(root2.data.nodeId)]), discovered: disc };
-        return { visible: /* @__PURE__ */ new Set(), frontier: /* @__PURE__ */ new Set(), discovered: disc };
-      }
-      const vis = new Set(disc);
-      const front = /* @__PURE__ */ new Set();
-      for (const nid of disc) for (const nb of adj.get(nid) || []) if (!disc.has(nb)) {
-        vis.add(nb);
-        front.add(nb);
-      }
-      return { visible: vis, frontier: front, discovered: disc };
-    }, [nodes, adj]);
-    const rootNid = useMemo(() => {
-      const sorted = [...nodes].sort((a2, b) => Number(a2.data.tier) - Number(b.data.tier));
-      return sorted[0] ? String(sorted[0].data.nodeId) : null;
-    }, [nodes]);
     const discoveries = store.usePosts("discovery");
     const terms = store.useChildren(treeId || "", "lexicon");
     const { nidMap } = useLexMaps();
-    const contextEdges = useMemo(() => {
+    const graphNodes = useMemo2(() => nodes.map((n) => ({
+      id: n.id,
+      nid: String(n.data.nodeId),
+      tier: Number(n.data.tier) || 0,
+      branch: String(n.data.branch || ""),
+      title: String(n.data.title)
+    })), [nodes]);
+    const graphEdges = useMemo2(
+      () => edgeRecords.map((e) => ({ from: String(e.data.fromNid), to: String(e.data.toNid) })),
+      [edgeRecords]
+    );
+    const graphBranches = useMemo2(() => branchRecords.map((b) => ({
+      key: String(b.data.key),
+      label: String(b.data.label),
+      color: String(b.data.color || "neutral")
+    })), [branchRecords]);
+    const graphRelTypes = useMemo2(() => relTypeRecords.map((r) => ({
+      key: String(r.data.key),
+      label: String(r.data.label),
+      color: String(r.data.color || "neutral")
+    })), [relTypeRecords]);
+    const graphContextEdges = useMemo2(() => {
       const discoveredTermIds = new Set(discoveries.map((d) => String(d.data.termId)));
       if (!discoveredTermIds.size) return [];
       const map = /* @__PURE__ */ new Map();
@@ -3543,7 +3815,6 @@ const plugin = ({ React, ui, store, sdk, icons }) => {
         const rel = String(term.data.relation || "inne");
         for (let i = 0; i < termNodes.length; i++)
           for (let j = i + 1; j < termNodes.length; j++) {
-            if (!visible.has(termNodes[i]) || !visible.has(termNodes[j])) continue;
             const [a2, b] = [termNodes[i], termNodes[j]].sort();
             const key = `${a2}:${b}`;
             if (!map.has(key)) map.set(key, { from: a2, to: b, rels: /* @__PURE__ */ new Map() });
@@ -3564,10 +3835,18 @@ const plugin = ({ React, ui, store, sdk, icons }) => {
         out.push({ from, to, relation: best, count: total, strength: Math.min(0.4 + total * 0.15, 0.9) });
       }
       return out;
-    }, [discoveries, terms, visible, nidMap]);
-    const nextNid = useMemo(() => {
+    }, [discoveries, terms, nidMap]);
+    const hits = useMemo2(() => {
+      const m2 = {};
+      for (const n of nodes) m2[String(n.data.nodeId)] = Number(n.data.hits) || 0;
+      return m2;
+    }, [nodes]);
+    const nextNid = useMemo2(() => {
       const discNodeIds = new Set(nodes.filter((n) => Number(n.data.hits) > 0).map((n) => String(n.data.nodeId)));
-      if (!discNodeIds.size) return rootNid;
+      if (!discNodeIds.size) {
+        const sorted = [...nodes].sort((a2, b) => Number(a2.data.tier) - Number(b.data.tier));
+        return sorted[0] ? String(sorted[0].data.nodeId) : null;
+      }
       const scores = /* @__PURE__ */ new Map();
       for (const t of terms) {
         const tn = nidMap.get(t.id) || [];
@@ -3579,249 +3858,27 @@ const plugin = ({ React, ui, store, sdk, icons }) => {
         best = k;
         bs = v;
       }
-      return best || rootNid;
-    }, [nodes, terms, rootNid, nidMap]);
-    const C = {
-      bg: "var(--color-base-100)",
-      surface: "var(--color-base-200)",
-      edge: "var(--color-base-content)",
-      warn: "var(--color-warning)",
-      primary: "var(--color-primary)",
-      text: "var(--color-base-content)",
-      muted: "var(--color-base-300)"
-    };
-    const visNodes = useMemo(() => nodes.filter((n) => visible.has(String(n.data.nodeId))), [nodes, visible]);
-    const visEdges = useMemo(() => edges.filter((e) => visible.has(e.from) && visible.has(e.to)), [edges, visible]);
-    const svgRef = useRef(null);
-    const gRef = useRef(null);
-    const simRef = useRef(null);
-    const simNodesRef = useRef(/* @__PURE__ */ new Map());
-    const zoomRef = useRef(null);
-    const simNodes = useMemo(() => {
-      const out = [];
-      const map = simNodesRef.current;
-      for (const n of visNodes) {
-        const nid = String(n.data.nodeId);
-        const branch = String(n.data.branch || "");
-        const existing = map.get(nid);
-        const tier = Number(n.data.tier) || 0;
-        if (existing) {
-          existing.tier = tier;
-          existing.branch = branch;
-          out.push(existing);
-        } else {
-          const angle = Math.random() * Math.PI * 2;
-          const r = tier * 180 + 40;
-          const node = { id: n.id, nid, tier, branch, x: Math.cos(angle) * r, y: Math.sin(angle) * r };
-          map.set(nid, node);
-          out.push(node);
-        }
-      }
-      const visibleNids = new Set(visNodes.map((n) => String(n.data.nodeId)));
-      for (const k of map.keys()) if (!visibleNids.has(k)) map.delete(k);
-      return out;
-    }, [visNodes]);
-    const structLinks = useMemo(
-      () => visEdges.filter((e) => simNodesRef.current.has(e.from) && simNodesRef.current.has(e.to)).map((e) => ({ source: e.from, target: e.to, kind: "struct" })),
-      [visEdges]
-    );
-    const contextLinks = useMemo(
-      () => contextEdges.filter((ce) => simNodesRef.current.has(ce.from) && simNodesRef.current.has(ce.to)).map((ce) => ({ source: ce.from, target: ce.to, count: ce.count, relation: ce.relation, strength: ce.strength, kind: "context" })),
-      [contextEdges]
-    );
-    const flashLinks = useMemo(
-      () => discoveredPairs.filter((p) => simNodesRef.current.has(p.fromNid) && simNodesRef.current.has(p.toNid)).map((p) => ({ source: p.fromNid, target: p.toNid, kind: "flash" })),
-      [discoveredPairs]
-    );
-    const onTick = useCallback(() => {
-      const g = gRef.current;
-      if (!g) return;
-      const nodeEls = g.querySelectorAll(".bq-node");
-      nodeEls.forEach((el) => {
-        const nid = el.dataset.nid;
-        if (!nid) return;
-        const n = simNodesRef.current.get(nid);
-        if (!n) return;
-        el.setAttribute("transform", `translate(${n.x},${n.y})`);
-      });
-      const edgeEls = g.querySelectorAll("path[data-from]");
-      edgeEls.forEach((el) => {
-        const a2 = simNodesRef.current.get(el.dataset.from || "");
-        const b = simNodesRef.current.get(el.dataset.to || "");
-        if (!a2 || !b) return;
-        const mx = (a2.x + b.x) / 2 + (b.y - a2.y) * 0.12;
-        const my = (a2.y + b.y) / 2 - (b.x - a2.x) * 0.12;
-        el.setAttribute("d", `M${a2.x},${a2.y} Q${mx},${my} ${b.x},${b.y}`);
-      });
-      const ctxLabels = g.querySelectorAll("g[data-ctx]");
-      ctxLabels.forEach((el) => {
-        const a2 = simNodesRef.current.get(el.dataset.from || "");
-        const b = simNodesRef.current.get(el.dataset.to || "");
-        if (!a2 || !b) return;
-        el.setAttribute("transform", `translate(${(a2.x + b.x) / 2},${(a2.y + b.y) / 2})`);
-      });
-    }, []);
-    const nidsKey = useMemo(() => simNodes.map((n) => n.nid).sort().join(","), [simNodes]);
-    useEffect(() => {
-      const root2 = simNodes.find((n) => n.nid === rootNid);
-      if (root2) {
-        root2.fx = 0;
-        root2.fy = 0;
-      }
-      const sim = forceSimulation(simNodes).force("link-struct", forceLink(structLinks).id((d) => d.nid).distance(140).strength(0.4)).force("link-context", forceLink(contextLinks).id((d) => d.nid).distance((d) => Math.max(60, 130 - (d.count || 1) * 8)).strength((d) => Math.min(0.15 + (d.count || 1) * 0.12, 0.7))).force("charge", forceManyBody().strength(-450)).force("center", forceCenter(0, 0)).force("radial", forceRadial((d) => d.tier * 170, 0, 0).strength(0.12)).force("collide", forceCollide((d) => d.branch === "epoki" ? 95 : 55)).alphaDecay(0.05).alphaMin(0.01).on("tick", onTick);
-      simRef.current = sim;
-      return () => {
-        sim.stop();
-        simRef.current = null;
-      };
-    }, [nidsKey, rootNid]);
-    useEffect(() => {
-      const sim = simRef.current;
-      if (!sim) return;
-      const fStruct = sim.force("link-struct");
-      const fCtx = sim.force("link-context");
-      if (fStruct) fStruct.links(structLinks);
-      if (fCtx) fCtx.links(contextLinks);
-      sim.alpha(0.6).restart();
-    }, [structLinks, contextLinks]);
-    useEffect(() => {
-      var _a;
-      if (flashLinks.length === 0) return;
-      (_a = simRef.current) == null ? void 0 : _a.alpha(0.8).restart();
-    }, [flashLinks]);
-    useEffect(() => {
-      if (!svgRef.current || !gRef.current) return;
-      const svgSel = select(svgRef.current);
-      const gSel = select(gRef.current);
-      const z = d3zoom().scaleExtent([0.3, 2.5]).on("zoom", (e) => gSel.attr("transform", e.transform.toString()));
-      svgSel.call(z);
-      const rect = svgRef.current.getBoundingClientRect();
-      svgSel.call(z.transform, identity.translate(rect.width / 2, rect.height / 2).scale(0.8));
-      zoomRef.current = z;
-      return () => {
-        svgSel.on(".zoom", null);
-      };
-    }, []);
-    useEffect(() => {
-      if (!sel || !svgRef.current || !zoomRef.current) return;
-      const node = simNodes.find((n) => n.id === sel);
-      if (!node) return;
-      const svgSel = select(svgRef.current);
-      const rect = svgRef.current.getBoundingClientRect();
-      svgSel.transition().duration(600).call(zoomRef.current.transform, identity.translate(rect.width / 2 - node.x * 0.9, rect.height / 2 - node.y * 0.9).scale(0.9));
-    }, [sel, simNodes]);
-    useEffect(() => {
-      if (!gRef.current) return;
-      const dragBeh = d3drag().clickDistance(5).subject(function() {
-        const nid = this.dataset.nid;
-        return nid ? simNodesRef.current.get(nid) : null;
-      }).on("start", (e) => {
-        var _a;
-        if (!e.subject) return;
-        if (!e.active) (_a = simRef.current) == null ? void 0 : _a.alphaTarget(0.3).restart();
-        e.subject.fx = e.subject.x;
-        e.subject.fy = e.subject.y;
-      }).on("drag", (e) => {
-        if (!e.subject) return;
-        e.subject.fx = e.x;
-        e.subject.fy = e.y;
-      }).on("end", (e) => {
-        var _a;
-        if (!e.subject) return;
-        if (!e.active) (_a = simRef.current) == null ? void 0 : _a.alphaTarget(0);
-        if (e.subject.nid !== rootNid) {
-          e.subject.fx = null;
-          e.subject.fy = null;
-        }
-      });
-      select(gRef.current).selectAll(".bq-node").call(dragBeh);
-    }, [simNodes, rootNid]);
-    const posOf = (nid) => simNodesRef.current.get(nid) || { x: 0, y: 0 };
+      return best || null;
+    }, [nodes, terms, nidMap]);
     if (!treeId) return /* @__PURE__ */ jsx(ui.Placeholder, { text: "Wybierz drzewo z listy" });
     if (!nodes.length) return /* @__PURE__ */ jsx(ui.Placeholder, { text: "Zaimportuj paczkę bazową" });
-    return /* @__PURE__ */ jsxs("svg", { ref: svgRef, style: { width: "100%", height: "100%", cursor: "grab", userSelect: "none", display: "block", touchAction: "none", background: C.bg }, children: [
-      /* @__PURE__ */ jsxs("defs", { children: [
-        /* @__PURE__ */ jsxs("filter", { id: "glow", children: [
-          /* @__PURE__ */ jsx("feGaussianBlur", { stdDeviation: "4", result: "blur" }),
-          /* @__PURE__ */ jsxs("feMerge", { children: [
-            /* @__PURE__ */ jsx("feMergeNode", { in: "blur" }),
-            /* @__PURE__ */ jsx("feMergeNode", { in: "SourceGraphic" })
-          ] })
-        ] }),
-        /* @__PURE__ */ jsx("filter", { id: "shadow", x: "-50%", y: "-50%", width: "200%", height: "200%", children: /* @__PURE__ */ jsx("feDropShadow", { dx: "0", dy: "3", stdDeviation: "2", floodOpacity: "0.25" }) })
-      ] }),
-      /* @__PURE__ */ jsxs("g", { ref: gRef, children: [
-        visEdges.map((e, i) => /* @__PURE__ */ jsx("path", { "data-from": e.from, "data-to": e.to, d: "", fill: "none", style: { stroke: C.edge }, strokeWidth: 6, strokeLinecap: "round", opacity: 0.1 }, `s${i}`)),
-        contextEdges.map((ce, i) => {
-          const rd = relDef(ce.relation);
-          const col = tok(rd.color);
-          const label = `${rd.label}${ce.count > 1 ? ` ·${ce.count}` : ""}`;
-          const lw = label.length * 4.2 + 8;
-          return /* @__PURE__ */ jsxs("g", { children: [
-            /* @__PURE__ */ jsx("path", { "data-from": ce.from, "data-to": ce.to, d: "", fill: "none", style: { stroke: col }, strokeWidth: 3 + Math.min(ce.count, 3), strokeLinecap: "round", opacity: ce.strength * 0.75, filter: "url(#glow)" }),
-            /* @__PURE__ */ jsxs("g", { "data-ctx": true, "data-from": ce.from, "data-to": ce.to, children: [
-              /* @__PURE__ */ jsx("rect", { x: -lw / 2, y: -7, width: lw, height: 12, rx: 6, style: { fill: C.bg, stroke: col }, strokeWidth: 1, opacity: 0.95 }),
-              /* @__PURE__ */ jsx("text", { y: 2, textAnchor: "middle", style: { fill: col, pointerEvents: "none", fontWeight: 600 }, fontSize: 8, children: label })
-            ] })
-          ] }, `ctx-${i}`);
-        }),
-        discoveredPairs.map((pair, i) => /* @__PURE__ */ jsx(
-          "path",
-          {
-            "data-from": pair.fromNid,
-            "data-to": pair.toNid,
-            d: "",
-            fill: "none",
-            style: { stroke: C.warn },
-            strokeWidth: pair.fresh ? 6 : 4,
-            strokeLinecap: "round",
-            opacity: pair.fresh ? 0.9 : 0.55,
-            filter: "url(#glow)",
-            children: pair.fresh && /* @__PURE__ */ jsx("animate", { attributeName: "opacity", values: "1;0.4;1;0.9", dur: "1s", repeatCount: "3", fill: "freeze" })
-          },
-          `dp-${i}`
-        )),
-        visNodes.map((n) => {
-          var _a;
-          const nid = String(n.data.nodeId), p = posOf(nid);
-          const s = str(n), disc = discovered.has(nid), front = frontier.has(nid), mast = s >= 1;
-          const isNext = nid === nextNid && !disc;
-          const isSel = sel === n.id;
-          const isEpoka = String(n.data.branch) === "epoki";
-          const r = (mast ? 42 : disc ? 38 : 34) + (isEpoka ? 16 : 0);
-          const bc = tok(((_a = branches[String(n.data.branch)]) == null ? void 0 : _a.color) || "neutral");
-          const fill = disc ? bc : C.surface;
-          const ringCol = disc ? bc : C.muted;
-          return /* @__PURE__ */ jsxs("g", { className: "bq-node", "data-nid": nid, transform: `translate(${p.x},${p.y})`, onClick: () => {
-            useNav.setState({ sel: n.id, phase: "detail" });
-            sdk.shared.setState({ bq: { treeId, nodeId: nid, postId: n.id } });
-            setRevealed((prev) => new Set(prev).add(nid));
-          }, style: { cursor: "pointer" }, children: [
-            isSel && /* @__PURE__ */ jsx("circle", { r: r + 10, fill: "none", style: { stroke: C.primary }, strokeWidth: 3, opacity: 0.7 }),
-            isNext && [0, 0.7, 1.4].map((delay, k) => /* @__PURE__ */ jsxs("circle", { r, fill: "none", style: { stroke: C.primary }, strokeWidth: 7, children: [
-              /* @__PURE__ */ jsx("animate", { attributeName: "r", values: `${r};${r + 34}`, dur: "2.1s", begin: `${delay}s`, repeatCount: "indefinite" }),
-              /* @__PURE__ */ jsx("animate", { attributeName: "opacity", values: "1;0", dur: "2.1s", begin: `${delay}s`, repeatCount: "indefinite" }),
-              /* @__PURE__ */ jsx("animate", { attributeName: "stroke-width", values: "7;1", dur: "2.1s", begin: `${delay}s`, repeatCount: "indefinite" })
-            ] }, `sonar-${k}`)),
-            /* @__PURE__ */ jsx("circle", { cy: 4, r, style: { fill: C.edge }, opacity: 0.15 }),
-            /* @__PURE__ */ jsx("circle", { r, style: { fill, stroke: ringCol }, strokeWidth: disc ? 4 : 3, filter: "url(#shadow)", children: disc && !mast && /* @__PURE__ */ jsx("animate", { attributeName: "r", values: `${r};${r + 3};${r}`, dur: "2s", repeatCount: "1" }) }),
-            mast && /* @__PURE__ */ jsx("circle", { r: r - 6, fill: "none", style: { stroke: C.bg }, strokeWidth: 3, opacity: 0.6 }),
-            mast ? /* @__PURE__ */ jsx("text", { y: 9, textAnchor: "middle", fontSize: 30, style: { fill: C.bg, fontWeight: 700, pointerEvents: "none" }, children: "★" }) : disc ? /* @__PURE__ */ jsx("text", { y: 7, textAnchor: "middle", fontSize: 20, style: { fill: C.bg, fontWeight: 700, pointerEvents: "none" }, children: Number(n.data.hits) || 0 }) : /* @__PURE__ */ jsx("text", { y: 8, textAnchor: "middle", fontSize: 24, style: { fill: C.muted, fontWeight: 700, pointerEvents: "none" }, children: front ? "＋" : "🔒" }),
-            /* @__PURE__ */ jsx(
-              "text",
-              {
-                y: r + 18,
-                textAnchor: "middle",
-                style: { fill: C.text, fontWeight: disc ? 700 : 500, pointerEvents: "none" },
-                fontSize: 13,
-                opacity: disc ? 1 : revealed.has(nid) ? 0.6 : 0.35,
-                children: disc || revealed.has(nid) ? String(n.data.title).slice(0, 18) : "???"
-              }
-            )
-          ] }, n.id);
-        })
-      ] })
-    ] });
+    return /* @__PURE__ */ jsx(
+      KnowledgeGraph,
+      {
+        nodes: graphNodes,
+        edges: graphEdges,
+        contextEdges: graphContextEdges,
+        branches: graphBranches,
+        relTypes: graphRelTypes,
+        selectedId: sel,
+        onSelectNode: (n) => {
+          useNav.setState({ sel: n.id, phase: "detail" });
+          sdk.shared.setState({ bq: { treeId, nodeId: n.nid, postId: n.id } });
+        },
+        progress: { hits, flashPairs: discoveredPairs, nextNid },
+        bigBranches: ["epoki"]
+      }
+    );
   }
   function NodeDetail({ id: id2 }) {
     const node = store.usePost(id2);
@@ -3916,8 +3973,6 @@ const plugin = ({ React, ui, store, sdk, icons }) => {
     }, { parentId: treeId }).id;
     const nodes = jparse(String(data.nodes || "[]"), []);
     for (const nid of nodes) store.add("lexNode", { nid }, { parentId: lexId });
-    const forms = jparse(String(data.forms || "[]"), []);
-    for (const v of forms) if (v) store.add("form", { value: v }, { parentId: lexId });
     const quiz = jparse(String(data.quiz || "{}"), {});
     if (quiz.question || quiz.answer) {
       store.add("quiz", {
@@ -4032,9 +4087,9 @@ const plugin = ({ React, ui, store, sdk, icons }) => {
   };
   function RepoPicker() {
     const org = store.useOption("bq:githubOrg") || DEFAULT_ORG;
-    const [repos, setRepos] = useState([]);
-    const [loading, setLoading] = useState(true);
-    useEffect(() => {
+    const [repos, setRepos] = useState2([]);
+    const [loading, setLoading] = useState2(true);
+    useEffect2(() => {
       fetch(`${GH_API}/search/repositories?q=org:${org}+topic:brainquest&per_page=100`).then((r) => r.ok ? r.json() : Promise.reject(r.status)).then((d) => setRepos(d.items.sort((a2, b) => a2.name.localeCompare(b.name)))).catch((e) => sdk.log(`GitHub: ${e}`, "error")).finally(() => setLoading(false));
     }, [org]);
     return /* @__PURE__ */ jsx(ui.Page, { children: /* @__PURE__ */ jsxs(ui.Stack, { children: [
@@ -4091,7 +4146,7 @@ const plugin = ({ React, ui, store, sdk, icons }) => {
     const terms = store.useChildren(treeId, "lexicon");
     const discoveries = store.usePosts("discovery");
     const { nidMap } = useLexMaps();
-    const { density, discPairs, allPairs, nextNode } = useMemo(() => {
+    const { density, discPairs, allPairs, nextNode } = useMemo2(() => {
       const nodeIdSet = new Set(nodes.map((n) => String(n.data.nodeId)));
       const discTermIds = new Set(discoveries.map((d2) => String(d2.data.termId)));
       const discNodeIds = new Set(nodes.filter((n) => Number(n.data.hits) > 0).map((n) => String(n.data.nodeId)));
@@ -4151,7 +4206,7 @@ const plugin = ({ React, ui, store, sdk, icons }) => {
     const treeId = (bq == null ? void 0 : bq.treeId) || useNav().treeId || "";
     const lexicon = store.useChildren(treeId, "lexicon");
     const discoveries = store.usePosts("discovery");
-    const items = useMemo(() => {
+    const items = useMemo2(() => {
       const discSet = new Set(discoveries.map((d) => String(d.data.termId)));
       return lexicon.filter((l) => discSet.has(l.id) && (!filter2 || filter2(l.id))).map((l) => ({ id: l.id, term: String(l.data.term || ""), definition: String(l.data.definition || "") }));
     }, [lexicon, discoveries, filter2]);
@@ -4192,7 +4247,7 @@ const plugin = ({ React, ui, store, sdk, icons }) => {
   function Center() {
     const { treeId, phase, sel } = useNav();
     const trees = store.usePosts("tree");
-    useEffect(() => {
+    useEffect2(() => {
       if (!treeId && trees.length) useNav.setState({ treeId: trees[0].id });
     }, [treeId, trees.length]);
     if (!treeId && !trees.length) return /* @__PURE__ */ jsx(RepoPicker, {});
