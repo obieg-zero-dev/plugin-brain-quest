@@ -3961,7 +3961,7 @@ const plugin = ({ React, ui, store, sdk, icons }) => {
       ] })
     ] }) });
   }
-  const DEFAULT_ORG = "BrainEduPlay";
+  const DEFAULT_ORG = "BQ-content";
   const flattenLexEntry = (entry, treeId) => {
     var _a, _b, _c;
     const data = entry.data || {};

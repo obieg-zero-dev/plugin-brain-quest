@@ -326,7 +326,7 @@ const plugin: PluginFactory = ({ React, ui, store, sdk, icons }) => {
 
   // --- GitHub source (SeedNode[] format) ---
   type GHRepo = { name: string; description: string | null }
-  const DEFAULT_ORG = 'BrainEduPlay'
+  const DEFAULT_ORG = 'BQ-content'
 
   // Rozbija jeden wpis leksykonu w starym formacie (z JSON-stringami) na płaskie rekordy:
   // lexicon + lexNode[] + form[] + quiz?
