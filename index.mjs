@@ -3513,8 +3513,11 @@ const Planet = (p) => {
               cy: 0,
               r: haloR,
               fill: haloColor,
-              opacity: isSel || isHl ? 0.3 : 0,
-              style: { transition: "r 250ms ease-out, opacity 300ms ease-out, fill 350ms ease-out" },
+              opacity: isSel || isHl ? 0.4 : 0,
+              style: {
+                transition: "r 250ms ease-out, opacity 300ms ease-out, fill 350ms ease-out",
+                filter: "blur(3px)"
+              },
               pointerEvents: "none"
             }
           ),
