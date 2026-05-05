@@ -3209,7 +3209,8 @@ const planetGeom = (baseR, state) => {
   const r = state === "selected" ? baseR + 4 : baseR;
   return {
     r,
-    haloR: r + 8,
+    haloR: r + 16,
+    // soft glow extent (było r + 8) — większa świetlista poświata
     liftOff: Math.max(2, r * 0.18),
     moonOrbitR: r + MOON.orbitGap
   };
@@ -3511,10 +3512,10 @@ const Planet = (p) => {
               cy: 0,
               r: haloR,
               fill: haloColor,
-              opacity: isSel || isHl ? 0.4 : 0,
+              opacity: isSel || isHl ? 0.5 : 0,
               style: {
                 transition: "r 250ms ease-out, opacity 300ms ease-out, fill 350ms ease-out",
-                filter: "blur(3px)"
+                filter: "blur(6px)"
               },
               pointerEvents: "none"
             }
