@@ -3249,12 +3249,24 @@ const computeLayout = (visibleNodes, allNodes, branches, visibleEdges) => {
     prevR = r;
     return { ...info, radius: r };
   });
+  const parseTier = (n) => {
+    if (typeof n.tier === "number") return n.tier;
+    const parsed = parseInt(String(n.tier ?? ""), 10);
+    return Number.isFinite(parsed) ? parsed : 0;
+  };
   const initialSimNodes = [];
   for (const orbit of orbits) {
-    const onOrbit = visibleNodes.filter((n) => branchOf(n) === orbit.key);
-    if (!onOrbit.length) continue;
-    onOrbit.forEach((n, j) => {
-      const a2 = j / Math.max(onOrbit.length, 1) * Math.PI * 2 - Math.PI / 2;
+    const allOnBranch = allNodes.filter((n) => branchOf(n) === orbit.key);
+    if (!allOnBranch.length) continue;
+    const sorted = [...allOnBranch].sort((a2, b) => {
+      const dt = parseTier(a2) - parseTier(b);
+      return dt !== 0 ? dt : a2.nid.localeCompare(b.nid);
+    });
+    const slotByNid = new Map(sorted.map((n, idx) => [n.nid, idx]));
+    const total = Math.max(sorted.length, 1);
+    for (const n of visibleNodes.filter((x2) => branchOf(x2) === orbit.key)) {
+      const j = slotByNid.get(n.nid) ?? 0;
+      const a2 = j / total * Math.PI * 2 - Math.PI / 2;
       initialSimNodes.push({
         id: n.nid,
         x: LAYOUT.cx + Math.cos(a2) * orbit.radius,
@@ -3263,7 +3275,7 @@ const computeLayout = (visibleNodes, allNodes, branches, visibleEdges) => {
         color: orbit.color,
         branch: orbit.key
       });
-    });
+    }
   }
   const nidSet = new Set(initialSimNodes.map((n) => n.id));
   const simLinks = visibleEdges.map((e) => ({ source: e.from, target: e.to })).filter((l) => nidSet.has(l.source) && nidSet.has(l.target));
