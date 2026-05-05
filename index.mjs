@@ -3342,7 +3342,8 @@ const Edge = (p) => {
         strokeOpacity: p.op,
         strokeWidth: p.sw,
         strokeLinecap: "round",
-        strokeDasharray: p.dashed ? "4 3" : void 0
+        strokeDasharray: p.dashed ? "4 3" : void 0,
+        shapeRendering: "crispEdges"
       }
     ),
     arrow && /* @__PURE__ */ jsx("path", { d: arrow.path, fill: p.color, opacity: p.op }),
@@ -3375,7 +3376,8 @@ const Orbit = (p) => /* @__PURE__ */ jsxs(Fragment, { children: [
       fill: "none",
       stroke: p.color,
       strokeOpacity: 0.35,
-      strokeDasharray: "3 5"
+      strokeDasharray: "3 5",
+      shapeRendering: "crispEdges"
     }
   ),
   /* @__PURE__ */ jsx(
@@ -3584,6 +3586,7 @@ const FlashEdge = (p) => /* @__PURE__ */ jsx(
       animation: p.fresh ? "cosmos-flash 1.4s ease-out 1" : void 0,
       opacity: p.fresh ? void 0 : 0.45
     },
+    shapeRendering: "crispEdges",
     pointerEvents: "none"
   }
 );
