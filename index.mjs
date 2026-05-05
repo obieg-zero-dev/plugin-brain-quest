@@ -3187,6 +3187,12 @@ const tok = (name) => {
   return COSMOS.fallback;
 };
 const darken = (color2, amt = 0.45) => `color-mix(in srgb, ${color2} ${Math.round((1 - amt) * 100)}%, black)`;
+const hashStr = (s) => {
+  let h = 0;
+  for (let i = 0; i < s.length; i++) h = h * 31 + s.charCodeAt(i) >>> 0;
+  return h;
+};
+const planetRadius = (weight) => Math.min(8 + weight, 18);
 const planetGeom = (baseR, state) => {
   const r = state === "selected" ? baseR + 4 : baseR;
   return {
@@ -4057,11 +4063,33 @@ function CosmosGraph(props) {
     ] })
   ] });
 }
+const COSMOS_TOKENS = {
+  PALETTE,
+  planetRadius,
+  tok,
+  darken,
+  hashStr
+};
 const GH_API = "https://api.github.com";
 const GH_RAW = "https://raw.githubusercontent.com";
 const plugin = ({ React, ui, store, sdk, icons }) => {
   const { useState: useState2, useMemo: useMemo2, useEffect: useEffect2 } = React;
   const { Award, X, Zap, BookOpen } = icons;
+  const CAT_COLORS = {
+    motyw: "#f59e0b",
+    topos: "#ef4444",
+    gatunek: "#4a90e2",
+    srodek: "#9b59b6",
+    srodek_stylistyczny: "#9b59b6",
+    postac: "#22c55e",
+    pojecie: "#fde68a",
+    "pojęcie": "#fde68a"
+  };
+  const catColor = (c2) => {
+    if (CAT_COLORS[c2]) return CAT_COLORS[c2];
+    if (!c2) return COSMOS_TOKENS.tok(COSMOS_TOKENS.PALETTE[0]);
+    return COSMOS_TOKENS.tok(COSMOS_TOKENS.PALETTE[COSMOS_TOKENS.hashStr(c2) % COSMOS_TOKENS.PALETTE.length]);
+  };
   store.registerType("tree", [
     { key: "title", label: "Tytuł", required: true },
     { key: "repo", label: "Repo" }
@@ -4193,13 +4221,23 @@ const plugin = ({ React, ui, store, sdk, icons }) => {
     const relTypeRecords = store.useChildren(treeId || "", "relType");
     const discoveries = store.usePosts("discovery");
     const terms = store.useChildren(treeId || "", "lexicon");
+    const allContent = store.usePosts("content");
     const { nidMap } = useLexMaps();
+    const slidesByNodeId = useMemo2(() => {
+      const m2 = /* @__PURE__ */ new Map();
+      for (const c2 of allContent) {
+        if (String(c2.data.contentType) === "quiz") continue;
+        m2.set(c2.parentId, (m2.get(c2.parentId) || 0) + 1);
+      }
+      return m2;
+    }, [allContent]);
     const cosmosNodes = useMemo2(() => nodes.map((n) => ({
       nid: String(n.data.nodeId),
       title: String(n.data.title),
       branch: String(n.data.branch || ""),
-      tier: Number(n.data.tier) || 0
-    })), [nodes]);
+      tier: Number(n.data.tier) || 0,
+      size: COSMOS_TOKENS.planetRadius(slidesByNodeId.get(n.id) || 0)
+    })), [nodes, slidesByNodeId]);
     const cosmosEdges = useMemo2(
       () => edgeRecords.map((e) => ({ from: String(e.data.fromNid), to: String(e.data.toNid) })),
       [edgeRecords]
@@ -4214,6 +4252,24 @@ const plugin = ({ React, ui, store, sdk, icons }) => {
       label: String(r.data.label),
       color: String(r.data.color || "neutral")
     })), [relTypeRecords]);
+    const cosmosMoons = useMemo2(() => {
+      const discoveredTermIds = new Set(discoveries.map((d) => String(d.data.termId)));
+      if (!discoveredTermIds.size) return [];
+      const out = [];
+      for (const term of terms) {
+        if (!discoveredTermIds.has(term.id)) continue;
+        const nids = nidMap.get(term.id) || [];
+        for (const nid of nids) {
+          out.push({
+            nodeId: nid,
+            id: term.id,
+            color: catColor(String(term.data.category || "")),
+            title: `${String(term.data.term)} · ${String(term.data.category || "inne")}`
+          });
+        }
+      }
+      return out;
+    }, [terms, nidMap, discoveries]);
     const cosmosContextEdges = useMemo2(() => {
       const discoveredTermIds = new Set(discoveries.map((d) => String(d.data.termId)));
       if (!discoveredTermIds.size) return [];
@@ -4281,6 +4337,7 @@ const plugin = ({ React, ui, store, sdk, icons }) => {
       CosmosGraph,
       {
         nodes: cosmosNodes,
+        moons: cosmosMoons,
         edges: cosmosEdges,
         contextEdges: cosmosContextEdges,
         branches: cosmosBranches,

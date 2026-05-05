@@ -1,5 +1,5 @@
 import type { PluginFactory, PostRecord } from '@obieg-zero/sdk'
-import { CosmosGraph, type CosmosNode, type CosmosEdge, type CosmosContextEdge, type CosmosBranch, type CosmosRelType } from '@obieg-zero/cosmos-graph'
+import { CosmosGraph, COSMOS_TOKENS, type CosmosNode, type CosmosMoon, type CosmosEdge, type CosmosContextEdge, type CosmosBranch, type CosmosRelType } from '@obieg-zero/cosmos-graph'
 
 const GH_API = 'https://api.github.com'
 const GH_RAW = 'https://raw.githubusercontent.com'
@@ -7,6 +7,18 @@ const GH_RAW = 'https://raw.githubusercontent.com'
 const plugin: PluginFactory = ({ React, ui, store, sdk, icons }) => {
   const { useState, useMemo, useEffect } = React
   const { Award, X, Zap, BookOpen } = icons
+
+  // Kolory kategorii leksykonu — taka sama paleta jak w plugin-cosmos-bq (BQ-specific).
+  const CAT_COLORS: Record<string, string> = {
+    motyw: '#f59e0b', topos: '#ef4444', gatunek: '#4a90e2',
+    srodek: '#9b59b6', srodek_stylistyczny: '#9b59b6',
+    postac: '#22c55e', pojecie: '#fde68a', 'pojęcie': '#fde68a',
+  }
+  const catColor = (c: string): string => {
+    if (CAT_COLORS[c]) return CAT_COLORS[c]
+    if (!c) return COSMOS_TOKENS.tok(COSMOS_TOKENS.PALETTE[0])
+    return COSMOS_TOKENS.tok(COSMOS_TOKENS.PALETTE[COSMOS_TOKENS.hashStr(c) % COSMOS_TOKENS.PALETTE.length])
+  }
 
   store.registerType('tree', [
     { key: 'title', label: 'Tytuł', required: true },
@@ -150,14 +162,26 @@ const plugin: PluginFactory = ({ React, ui, store, sdk, icons }) => {
     const relTypeRecords = store.useChildren(treeId || '', 'relType') as PostRecord[]
     const discoveries = store.usePosts('discovery') as PostRecord[]
     const terms = store.useChildren(treeId || '', 'lexicon') as PostRecord[]
+    const allContent = store.usePosts('content') as PostRecord[]
     const { nidMap } = useLexMaps()
+
+    // Liczba slajdów per węzeł — taki sam mechanizm jak w plugin-cosmos-bq, daje większe planety dla bogatszych węzłów.
+    const slidesByNodeId = useMemo(() => {
+      const m = new Map<string, number>()
+      for (const c of allContent) {
+        if (String(c.data.contentType) === 'quiz') continue
+        m.set(c.parentId, (m.get(c.parentId) || 0) + 1)
+      }
+      return m
+    }, [allContent])
 
     const cosmosNodes = useMemo<CosmosNode[]>(() => nodes.map(n => ({
       nid: String(n.data.nodeId),
       title: String(n.data.title),
       branch: String(n.data.branch || ''),
       tier: Number(n.data.tier) || 0,
-    })), [nodes])
+      size: COSMOS_TOKENS.planetRadius(slidesByNodeId.get(n.id) || 0),
+    })), [nodes, slidesByNodeId])
 
     const cosmosEdges = useMemo<CosmosEdge[]>(() =>
       edgeRecords.map(e => ({ from: String(e.data.fromNid), to: String(e.data.toNid) })),
@@ -175,6 +199,26 @@ const plugin: PluginFactory = ({ React, ui, store, sdk, icons }) => {
       label: String(r.data.label),
       color: String(r.data.color || 'neutral'),
     })), [relTypeRecords])
+
+    // Księżyce — tylko z ODKRYTYCH terminów (gating gameplayu). Każde wystąpienie term→nid daje jeden księżyc.
+    const cosmosMoons = useMemo<CosmosMoon[]>(() => {
+      const discoveredTermIds = new Set(discoveries.map(d => String(d.data.termId)))
+      if (!discoveredTermIds.size) return []
+      const out: CosmosMoon[] = []
+      for (const term of terms) {
+        if (!discoveredTermIds.has(term.id)) continue
+        const nids = nidMap.get(term.id) || []
+        for (const nid of nids) {
+          out.push({
+            nodeId: nid,
+            id: term.id,
+            color: catColor(String(term.data.category || '')),
+            title: `${String(term.data.term)} · ${String(term.data.category || 'inne')}`,
+          })
+        }
+      }
+      return out
+    }, [terms, nidMap, discoveries])
 
     // Krawędzie kontekstowe — tylko z ODKRYTYCH terminów (gating reader-mode)
     const cosmosContextEdges = useMemo<CosmosContextEdge[]>(() => {
@@ -240,6 +284,7 @@ const plugin: PluginFactory = ({ React, ui, store, sdk, icons }) => {
     return (
       <CosmosGraph
         nodes={cosmosNodes}
+        moons={cosmosMoons}
         edges={cosmosEdges}
         contextEdges={cosmosContextEdges}
         branches={cosmosBranches}
