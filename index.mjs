@@ -3849,7 +3849,7 @@ function CosmosGraph(props) {
   const showAllLabels = zoomK >= 1.5;
   const labelOpacity = (sel, hov) => sel ? 1 : hov ? 0.95 : showAllLabels ? 0.8 : 0;
   const z = Math.max(zoomK, 0.5);
-  const edgeDim = (focused, relevant, idle, focusedDim, relevantDim, dimmedDim = 0.95) => !neighborSet ? idle : focused ? focusedDim : relevant ? relevantDim : dimmedDim;
+  const edgeDim = (focused, relevant, idle, focusedDim, relevantDim, dimmedDim = 0.85) => !neighborSet ? idle : focused ? focusedDim : relevant ? relevantDim : dimmedDim;
   const orbitsLayer = useMemo(() => /* @__PURE__ */ jsx(Fragment, { children: orbits.map((o) => {
     const big = bigBranchSet.has(o.key);
     return /* @__PURE__ */ jsx("g", { style: big ? { strokeWidth: 1.5 } : void 0, children: /* @__PURE__ */ jsx(
@@ -3871,12 +3871,12 @@ function CosmosGraph(props) {
     const d = edgeDim(
       isEdgeFocused(e.from, e.to),
       isEdgeRelevant(e.from, e.to),
-      hasType ? 0.4 : 0.85,
-      // idle (no selection)
+      hasType ? 0.4 : 0.75,
+      // idle (no selection) — untyped lekko jaśniejsze niż było (0.85)
       hasType ? 0.05 : 0.3,
       // focused
-      hasType ? 0.5 : 0.75
-      // relevant
+      hasType ? 0.5 : 0.65
+      // relevant — untyped lekko jaśniejsze (0.75 → 0.65)
     );
     const stronglyVisible = d < 0.6;
     return /* @__PURE__ */ jsx("g", { children: /* @__PURE__ */ jsx(
@@ -3908,8 +3908,8 @@ function CosmosGraph(props) {
       // idle
       1 - Math.min(0.5 + strength * 0.4, 0.9),
       // focused
-      0.75
-      // relevant
+      0.65
+      // relevant — lekko jaśniejsze (0.75 → 0.65)
     );
     return /* @__PURE__ */ jsx("g", { children: /* @__PURE__ */ jsx(
       Edge,
