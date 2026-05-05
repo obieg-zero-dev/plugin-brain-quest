@@ -3607,7 +3607,8 @@ const Moon = (p) => {
   const dimAmt = p.dimmed ? 0.7 : 0;
   const bodyFill = dimAmt ? dim(p.color, dimAmt) : p.color;
   const liftFill = dimAmt ? dim(darken(p.color), dimAmt) : darken(p.color);
-  const rectTransition = "x 250ms ease-out, y 250ms ease-out, width 250ms ease-out, height 250ms ease-out, fill 350ms ease-out, stroke 250ms ease-out";
+  const rectTransition = "x 250ms ease-out, y 250ms ease-out, width 250ms ease-out, height 250ms ease-out, fill 350ms ease-out, stroke 250ms ease-out, filter 300ms ease-out";
+  const glowFilter = p.selected ? `drop-shadow(0 0 4px ${p.color}) drop-shadow(0 0 1px ${p.color})` : p.related ? `drop-shadow(0 0 3px ${COSMOS.highlight})` : "none";
   return /* @__PURE__ */ jsxs("g", { transform: `translate(${p.x} ${p.y})`, children: [
     p.related && /* @__PURE__ */ jsx(
       "rect",
@@ -3651,7 +3652,11 @@ const Moon = (p) => {
         fill: bodyFill,
         stroke: p.selected ? COSMOS.label : "none",
         strokeWidth: 1,
-        style: { cursor: p.onClick ? "pointer" : "default", transition: rectTransition },
+        style: {
+          cursor: p.onClick ? "pointer" : "default",
+          transition: rectTransition,
+          filter: glowFilter
+        },
         onClick: p.onClick ? (e) => {
           e.stopPropagation();
           p.onClick();
