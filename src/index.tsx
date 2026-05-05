@@ -126,12 +126,20 @@ const plugin: PluginFactory = ({ React, ui, store, sdk, icons }) => {
   const jparse = <T,>(s: string, fb: T): T => { try { return JSON.parse(s) } catch { return fb } }
 
 
-  // --- skill tree (fog of war) — wrapper nad współdzielonym CosmosGraph + useBqGraphData ---
+  // --- skill tree (fog of war) — guard + body, żeby wszystkie hooki działały zawsze w tej samej kolejności ---
+  // SkillTree: zewnętrzny guard. Jedyna odpowiedzialność: sprawdzić warunek wstępny (treeId) i delegować.
   function SkillTree() {
-    const { treeId, sel } = useNav()
+    const { treeId } = useNav()
+    if (!treeId) return <ui.Placeholder text="Wybierz drzewo z listy" />
+    return <SkillTreeBody treeId={treeId} />
+  }
+
+  // SkillTreeBody: tutaj treeId jest gwarantowane non-null. Wszystkie hooki PRZED jakimkolwiek conditional return.
+  function SkillTreeBody({ treeId }: { treeId: string }) {
+    const { sel } = useNav()
 
     // Świeżo odkryte połączenia — przychodzi z readera przez sdk.shared.bqFlash
-    const flash = sdk.shared((s: any) => s?.bqFlash) as { fromNid?: string; toNid?: string } | null
+    const flash = sdk.shared((s: any) => s?.bqFlash) as { fromNid?: string; toNid?: string } | undefined
     const [discoveredPairs, setDiscoveredPairs] = useState<{ fromNid: string; toNid: string; fresh: boolean }[]>([])
     useEffect(() => { setDiscoveredPairs([]) }, [treeId])
     useEffect(() => {
@@ -146,12 +154,10 @@ const plugin: PluginFactory = ({ React, ui, store, sdk, icons }) => {
       sdk.shared.setState({ bqFlash: null })
     }, [flash])
 
-    const discoveries = store.usePosts('discovery') as PostRecord[]
-
     // JEDEN adapter dla obu pluginów BQ — z gateByDiscoveries=true (gameplay: tylko odkryte termy).
     const data = useBqGraphData(store as any, treeId, { gateByDiscoveries: true })
 
-    // Plugin-specific: progress.hits i nextNid (z hits + nidsByLex).
+    // Plugin-specific gameplay state: hits, nextNid, selectedNid.
     const hits = useMemo(() => {
       const m: Record<string, number> = {}
       for (const n of data.rawNodes) m[String(n.data.nodeId)] = Number(n.data.hits) || 0
@@ -175,15 +181,14 @@ const plugin: PluginFactory = ({ React, ui, store, sdk, icons }) => {
       return best || null
     }, [data.rawNodes, data.rawLexicons, data.nidsByLex])
 
-    if (!treeId) return <ui.Placeholder text="Wybierz drzewo z listy" />
-    if (!data.rawNodes.length) return <ui.Placeholder text="Zaimportuj paczkę bazową" />
-
     // CosmosGraph operuje na nid (logiczny id). Plugin trzyma `sel` jako post id.
     const selectedNid = useMemo(() => {
       if (!sel) return null
       const post = data.rawNodes.find(n => n.id === sel)
       return post ? String(post.data.nodeId) : null
     }, [sel, data.rawNodes])
+
+    if (!data.rawNodes.length) return <ui.Placeholder text="Zaimportuj paczkę bazową" />
 
     return (
       <CosmosGraph
@@ -207,16 +212,23 @@ const plugin: PluginFactory = ({ React, ui, store, sdk, icons }) => {
     )
   }
 
+  // NodeDetail: zewnętrzny guard (sprawdza czy post istnieje), delegacja do body z gwarantowanym non-null nodem.
   function NodeDetail({ id }: { id: string }) {
     const node = store.usePost(id)
+    if (!node) return null
+    return <NodeDetailBody node={node} id={id} />
+  }
+
+  // NodeDetailBody: wszystkie hooki PRZED jakimkolwiek conditional return. Node jest gwarantowane non-null.
+  function NodeDetailBody({ node, id }: { node: PostRecord; id: string }) {
     const treeId = useNav().treeId || ''
     const terms = store.useChildren(treeId, 'lexicon') as PostRecord[]
     const discoveries = store.usePosts('discovery') as PostRecord[]
+    const contents = store.useChildren(id, 'content') as PostRecord[]
     const { nidMap } = useLexMaps()
-    if (!node) return null
+
     const nodeId = String(node.data.nodeId)
     const s = str(node)
-    const contents = store.useChildren(id, 'content') as PostRecord[]
     const slideCount = contents.filter(c => String(c.data.contentType) !== 'quiz').length
 
     // ile terminów ma ten węzeł i ile z nich odkrytych

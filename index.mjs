@@ -1,5 +1,5 @@
 import { jsx, Fragment, jsxs } from "react/jsx-runtime";
-import { useMemo, useRef, useState, useEffect } from "react";
+import { useMemo, useRef, useState, useId, useEffect } from "react";
 function tree_add(d) {
   const x2 = +this._x.call(null, d), y2 = +this._y.call(null, d);
   return add(this.cover(x2, y2), x2, y2, d);
@@ -3192,7 +3192,8 @@ const hashStr = (s) => {
   for (let i = 0; i < s.length; i++) h = h * 31 + s.charCodeAt(i) >>> 0;
   return h;
 };
-const planetRadius = (weight) => Math.min(8 + weight, 18);
+const planetRadius = (weight) => Math.max(6, Math.min(8 + weight, 18));
+const safeIdAtom = (s) => s.replace(/[^a-zA-Z0-9_-]/g, "_");
 const planetGeom = (baseR, state) => {
   const r = state === "selected" ? baseR + 4 : baseR;
   return {
@@ -3392,7 +3393,7 @@ const CastShadow = (p) => {
   const x2 = p.planetX - px * w0, y2 = p.planetY - py * w0;
   const x3 = p.planetX - px * w1 + ux * len, y3 = p.planetY - py * w1 + uy * len;
   const x4 = p.planetX + px * w1 + ux * len, y4 = p.planetY + py * w1 + uy * len;
-  const gradId = `cosmos-shadow-${p.id}`;
+  const gradId = `${p.instanceId}-shadow-${safeIdAtom(p.id)}`;
   return /* @__PURE__ */ jsxs(Fragment, { children: [
     /* @__PURE__ */ jsxs(
       "linearGradient",
@@ -3721,6 +3722,8 @@ function CosmosGraph(props) {
   const [zoomK, setZoomK] = useState(1);
   const [panning, setPanning] = useState(false);
   const [hovered, setHovered] = useState(null);
+  const rawInstanceId = useId();
+  const instanceId = useMemo(() => `cg-${rawInstanceId.replace(/[^a-zA-Z0-9_-]/g, "")}`, [rawInstanceId]);
   const [positions, setPositions] = useState(() => {
     const m2 = /* @__PURE__ */ new Map();
     for (const n of initialSimNodes) m2.set(n.id, { x: n.x ?? 0, y: n.y ?? 0 });
@@ -3895,6 +3898,7 @@ function CosmosGraph(props) {
       CastShadow,
       {
         id: n.nid,
+        instanceId,
         sunX: cx,
         sunY: cy,
         planetX: p.x,
@@ -3903,7 +3907,7 @@ function CosmosGraph(props) {
       },
       n.nid
     );
-  }) }), [visNodes, positions, baseRByNid, cx, cy, frontier]);
+  }) }), [visNodes, positions, baseRByNid, cx, cy, frontier, instanceId]);
   const sonarLayer = useMemo(() => {
     if (!selectedNid) return null;
     const p = positions.get(selectedNid);
@@ -4336,7 +4340,12 @@ const plugin = ({ React, ui, store, sdk, icons }) => {
     }
   };
   function SkillTree() {
-    const { treeId, sel } = useNav();
+    const { treeId } = useNav();
+    if (!treeId) return /* @__PURE__ */ jsx(ui.Placeholder, { text: "Wybierz drzewo z listy" });
+    return /* @__PURE__ */ jsx(SkillTreeBody, { treeId });
+  }
+  function SkillTreeBody({ treeId }) {
+    const { sel } = useNav();
     const flash = sdk.shared((s) => s == null ? void 0 : s.bqFlash);
     const [discoveredPairs, setDiscoveredPairs] = useState2([]);
     useEffect2(() => {
@@ -4352,7 +4361,6 @@ const plugin = ({ React, ui, store, sdk, icons }) => {
       });
       sdk.shared.setState({ bqFlash: null });
     }, [flash]);
-    store.usePosts("discovery");
     const data = useBqGraphData(store, treeId, { gateByDiscoveries: true });
     const hits = useMemo2(() => {
       const m2 = {};
@@ -4378,13 +4386,12 @@ const plugin = ({ React, ui, store, sdk, icons }) => {
       }
       return best || null;
     }, [data.rawNodes, data.rawLexicons, data.nidsByLex]);
-    if (!treeId) return /* @__PURE__ */ jsx(ui.Placeholder, { text: "Wybierz drzewo z listy" });
-    if (!data.rawNodes.length) return /* @__PURE__ */ jsx(ui.Placeholder, { text: "Zaimportuj paczkę bazową" });
     const selectedNid = useMemo2(() => {
       if (!sel) return null;
       const post = data.rawNodes.find((n) => n.id === sel);
       return post ? String(post.data.nodeId) : null;
     }, [sel, data.rawNodes]);
+    if (!data.rawNodes.length) return /* @__PURE__ */ jsx(ui.Placeholder, { text: "Zaimportuj paczkę bazową" });
     return /* @__PURE__ */ jsx(
       CosmosGraph,
       {
@@ -4409,14 +4416,17 @@ const plugin = ({ React, ui, store, sdk, icons }) => {
   }
   function NodeDetail({ id: id2 }) {
     const node = store.usePost(id2);
+    if (!node) return null;
+    return /* @__PURE__ */ jsx(NodeDetailBody, { node, id: id2 });
+  }
+  function NodeDetailBody({ node, id: id2 }) {
     const treeId = useNav().treeId || "";
     const terms = store.useChildren(treeId, "lexicon");
     const discoveries = store.usePosts("discovery");
+    const contents = store.useChildren(id2, "content");
     const { nidMap } = useLexMaps();
-    if (!node) return null;
     const nodeId = String(node.data.nodeId);
     const s = str(node);
-    const contents = store.useChildren(id2, "content");
     const slideCount = contents.filter((c2) => String(c2.data.contentType) !== "quiz").length;
     const nodeTerms = terms.filter((t) => (nidMap.get(t.id) || []).includes(nodeId));
     const discSet = new Set(discoveries.map((d) => String(d.data.termId)));
