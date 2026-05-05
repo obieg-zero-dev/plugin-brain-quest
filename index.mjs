@@ -3145,10 +3145,13 @@ const SIM = {
   linkDistance: 80,
   linkStrength: 0.18,
   charge: -22,
-  alpha: 1,
-  alphaDecay: 0.04,
+  alpha: 0.85,
+  // start z lekko niższym dyskomfortem (było 1.0) — krótszy "rozsyp" przy starcie
+  alphaDecay: 0.07,
+  // szybsze osiadanie (~45 ticków zamiast 80)
   alphaMin: 1e-3,
-  velocityDecay: 0.5
+  velocityDecay: 0.55
+  // mniej wobble po osiadaniu
 };
 const ZOOM = { min: 0.5, max: 5, resetMs: 350 };
 const EMPTY_HITS = {};
@@ -4037,7 +4040,7 @@ function CosmosGraph(props) {
             @keyframes cosmos-flash { 0% { opacity: 0; stroke-width: 1; } 18% { opacity: 1; stroke-width: 5; } 100% { opacity: 0; stroke-width: 1; } }
             @keyframes cosmos-next { 0%, 100% { transform: scale(1); opacity: 0.3; } 50% { transform: scale(1.18); opacity: 0.85; } }
           ` }) }),
-          /* @__PURE__ */ jsxs("g", { ref: gRef, children: [
+          /* @__PURE__ */ jsxs("g", { ref: gRef, style: { willChange: "transform" }, children: [
             orbitsLayer,
             /* @__PURE__ */ jsx(Star, { cx, cy }),
             contextLayer,
