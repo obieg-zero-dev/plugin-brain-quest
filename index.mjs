@@ -3235,15 +3235,15 @@ const computeUsedBranches = (nodes, branches) => {
     };
   });
 };
-const computeLayout = (nodes, branches, edges) => {
-  const countPerKey = /* @__PURE__ */ new Map();
-  for (const n of nodes) {
+const computeLayout = (visibleNodes, allNodes, branches, visibleEdges) => {
+  const countPerKeyAll = /* @__PURE__ */ new Map();
+  for (const n of allNodes) {
     const k = branchOf(n);
-    countPerKey.set(k, (countPerKey.get(k) || 0) + 1);
+    countPerKeyAll.set(k, (countPerKeyAll.get(k) || 0) + 1);
   }
   let prevR = LAYOUT.rMin;
-  const orbits = computeUsedBranches(nodes, branches).map((info, i) => {
-    const cnt = countPerKey.get(info.key) || 1;
+  const orbits = computeUsedBranches(allNodes, branches).map((info, i) => {
+    const cnt = countPerKeyAll.get(info.key) || 1;
     const required = cnt * LAYOUT.minArc / (2 * Math.PI);
     const r = Math.max(prevR + (i === 0 ? 0 : LAYOUT.baseStep), required);
     prevR = r;
@@ -3251,7 +3251,8 @@ const computeLayout = (nodes, branches, edges) => {
   });
   const initialSimNodes = [];
   for (const orbit of orbits) {
-    const onOrbit = nodes.filter((n) => branchOf(n) === orbit.key);
+    const onOrbit = visibleNodes.filter((n) => branchOf(n) === orbit.key);
+    if (!onOrbit.length) continue;
     onOrbit.forEach((n, j) => {
       const a2 = j / Math.max(onOrbit.length, 1) * Math.PI * 2 - Math.PI / 2;
       initialSimNodes.push({
@@ -3265,7 +3266,7 @@ const computeLayout = (nodes, branches, edges) => {
     });
   }
   const nidSet = new Set(initialSimNodes.map((n) => n.id));
-  const simLinks = edges.map((e) => ({ source: e.from, target: e.to })).filter((l) => nidSet.has(l.source) && nidSet.has(l.target));
+  const simLinks = visibleEdges.map((e) => ({ source: e.from, target: e.to })).filter((l) => nidSet.has(l.source) && nidSet.has(l.target));
   return { initialSimNodes, simLinks, orbits };
 };
 const Label = (p) => {
@@ -3659,8 +3660,8 @@ function CosmosGraph(props) {
   const visMoons = useMemo(() => gating ? moons.filter((m2) => visible.has(m2.nodeId)) : moons, [gating, moons, visible]);
   const visFlashPairs = useMemo(() => flashPairs.filter((p) => visible.has(p.fromNid) && visible.has(p.toNid)), [flashPairs, visible]);
   const { initialSimNodes, simLinks, orbits } = useMemo(
-    () => computeLayout(visNodes, branches, visEdges),
-    [visNodes, branches, visEdges]
+    () => computeLayout(visNodes, nodes, branches, visEdges),
+    [visNodes, nodes, branches, visEdges]
   );
   const branchColorByNid = useMemo(() => {
     const orbitColors = new Map(orbits.map((o) => [o.key, o.color]));
