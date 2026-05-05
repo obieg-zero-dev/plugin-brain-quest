@@ -3608,7 +3608,23 @@ const Moon = (p) => {
   const liftFill = dimAmt ? dim(darken(p.color), dimAmt) : darken(p.color);
   const rectTransition = "x 250ms ease-out, y 250ms ease-out, width 250ms ease-out, height 250ms ease-out, fill 350ms ease-out, stroke 250ms ease-out, stroke-opacity 250ms ease-out, stroke-width 250ms ease-out, filter 300ms ease-out";
   const glowFilter = p.related ? `drop-shadow(0 0 4px ${COSMOS.highlight})` : "drop-shadow(0 0 0 transparent)";
+  const setPlateColor = `color-mix(in srgb, ${p.color} 15%, ${COSMOS.bgFrom})`;
   return /* @__PURE__ */ jsxs("g", { transform: `translate(${p.x} ${p.y})`, children: [
+    /* @__PURE__ */ jsx(
+      "circle",
+      {
+        cx: 0,
+        cy: size * 0.4,
+        r: p.selected ? size + 8 : 0,
+        fill: setPlateColor,
+        opacity: p.selected ? 0.7 : 0,
+        style: {
+          transition: "r 300ms ease-out, cy 300ms ease-out, opacity 300ms ease-out, fill 350ms ease-out",
+          filter: "blur(1px)"
+        },
+        pointerEvents: "none"
+      }
+    ),
     /* @__PURE__ */ jsx(
       "rect",
       {
