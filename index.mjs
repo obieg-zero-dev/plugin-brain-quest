@@ -3160,8 +3160,6 @@ const MOON = {
   size: 7,
   sizeSelected: 9,
   rx: 2,
-  ringSize: 11,
-  ringRx: 3,
   orbitGap: 14,
   liftOff: 1.5
 };
@@ -3608,24 +3606,8 @@ const Moon = (p) => {
   const bodyFill = dimAmt ? dim(p.color, dimAmt) : p.color;
   const liftFill = dimAmt ? dim(darken(p.color), dimAmt) : darken(p.color);
   const rectTransition = "x 250ms ease-out, y 250ms ease-out, width 250ms ease-out, height 250ms ease-out, fill 350ms ease-out, stroke 250ms ease-out, filter 300ms ease-out";
-  const glowFilter = p.selected ? `drop-shadow(0 0 4px ${p.color}) drop-shadow(0 0 1px ${p.color})` : p.related ? `drop-shadow(0 0 3px ${COSMOS.highlight})` : "none";
+  const glowFilter = p.selected ? `drop-shadow(0 0 5px ${p.color})` : p.related ? `drop-shadow(0 0 4px ${COSMOS.highlight})` : "drop-shadow(0 0 0 transparent)";
   return /* @__PURE__ */ jsxs("g", { transform: `translate(${p.x} ${p.y})`, children: [
-    p.related && /* @__PURE__ */ jsx(
-      "rect",
-      {
-        x: -11 / 2,
-        y: -11 / 2,
-        width: MOON.ringSize,
-        height: MOON.ringSize,
-        rx: MOON.ringRx,
-        ry: MOON.ringRx,
-        fill: "none",
-        stroke: COSMOS.highlight,
-        strokeOpacity: 0.55,
-        strokeWidth: 1,
-        pointerEvents: "none"
-      }
-    ),
     /* @__PURE__ */ jsx(
       "rect",
       {
