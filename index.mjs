@@ -3608,19 +3608,7 @@ const Moon = (p) => {
   const liftFill = dimAmt ? dim(darken(p.color), dimAmt) : darken(p.color);
   const rectTransition = "x 250ms ease-out, y 250ms ease-out, width 250ms ease-out, height 250ms ease-out, fill 350ms ease-out, stroke 250ms ease-out, stroke-opacity 250ms ease-out, stroke-width 250ms ease-out, filter 300ms ease-out";
   const glowFilter = p.related ? `drop-shadow(0 0 4px ${COSMOS.highlight})` : "drop-shadow(0 0 0 transparent)";
-  const setPlateColor = `color-mix(in srgb, ${p.color} 15%, ${COSMOS.bgFrom})`;
   return /* @__PURE__ */ jsxs("g", { transform: `translate(${p.x} ${p.y})`, children: [
-    p.selected && /* @__PURE__ */ jsx(
-      "circle",
-      {
-        cx: 0,
-        cy: 0,
-        r: MOON.sizeSelected + 18,
-        fill: setPlateColor,
-        opacity: 0.9,
-        pointerEvents: "none"
-      }
-    ),
     /* @__PURE__ */ jsx(
       "rect",
       {
@@ -3994,6 +3982,44 @@ function CosmosGraph(props) {
     const color2 = branchColorByNid.get(selectedNid) || COSMOS.fallback;
     return /* @__PURE__ */ jsx(Sonar, { x: p.x, y: p.y, r, color: color2 });
   }, [selectedNid, positions, baseRByNid, branchColorByNid]);
+  const setPlatesLayer = useMemo(() => {
+    if (!selectedMoonId) return null;
+    const plates = [];
+    for (const n of visNodes) {
+      const isFrontier = frontier.has(n.nid) && (hits[n.nid] || 0) === 0;
+      if (isFrontier) continue;
+      const myMoons = moonsByNid.get(n.nid) || [];
+      if (!myMoons.length) continue;
+      const p = positions.get(n.nid);
+      if (!p) continue;
+      const isSel = selectedNid === n.nid;
+      const isHl = !!(highlightedNids == null ? void 0 : highlightedNids.has(n.nid));
+      const state = isSel ? "selected" : isHl ? "highlighted" : "idle";
+      const baseR = baseRByNid.get(n.nid) || LAYOUT.defaultSize;
+      const moonOrbitR = planetGeom(baseR, state).moonOrbitR;
+      myMoons.forEach((m2, i) => {
+        if (m2.id !== selectedMoonId) return;
+        const ang = i / Math.max(myMoons.length, 1) * Math.PI * 2;
+        const x2 = p.x + Math.cos(ang) * moonOrbitR;
+        const y2 = p.y + Math.sin(ang) * moonOrbitR;
+        plates.push(
+          /* @__PURE__ */ jsx(
+            "circle",
+            {
+              cx: x2,
+              cy: y2,
+              r: MOON.sizeSelected + 18,
+              fill: `color-mix(in srgb, ${m2.color} 15%, ${COSMOS.bgFrom})`,
+              opacity: 0.9,
+              pointerEvents: "none"
+            },
+            `plate-${n.nid}-${m2.id}`
+          )
+        );
+      });
+    }
+    return /* @__PURE__ */ jsx(Fragment, { children: plates });
+  }, [selectedMoonId, visNodes, positions, moonsByNid, baseRByNid, frontier, hits, selectedNid, highlightedNids]);
   const planetsLayer = useMemo(() => /* @__PURE__ */ jsx(Fragment, { children: visNodes.map((n) => {
     const p = positions.get(n.nid);
     if (!p) return null;
@@ -4092,6 +4118,7 @@ function CosmosGraph(props) {
         children: [
           /* @__PURE__ */ jsx(Keyframes, {}),
           /* @__PURE__ */ jsxs("g", { ref: gRef, style: { willChange: "transform" }, children: [
+            setPlatesLayer,
             orbitsLayer,
             /* @__PURE__ */ jsx(Star, { cx, cy }),
             contextLayer,
