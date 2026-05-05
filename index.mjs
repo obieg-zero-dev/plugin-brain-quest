@@ -4037,7 +4037,7 @@ function CosmosGraph(props) {
       });
     }
     return /* @__PURE__ */ jsx(Fragment, { children: plates });
-  }, [selectedMoonId, visNodes, positions, moonsByNid, baseRByNid, frontier, hits, selectedNid, highlightedNids]);
+  }, [selectedMoonId, visNodes, positions, moonsByNid, baseRByNid, frontier, hits, selectedNid, highlightedNids, instanceId]);
   const planetsLayer = useMemo(() => /* @__PURE__ */ jsx(Fragment, { children: visNodes.map((n) => {
     const p = positions.get(n.nid);
     if (!p) return null;
@@ -4210,6 +4210,7 @@ const catColor = (c2) => {
   return COSMOS_TOKENS.tok(COSMOS_TOKENS.PALETTE[COSMOS_TOKENS.hashStr(c2) % COSMOS_TOKENS.PALETTE.length]);
 };
 const EDGE_KEY_SEP = "\0";
+const EMPTY_NID_SET = /* @__PURE__ */ new Set();
 function useBqGraphData(store, treeId, opts = {}) {
   const tid = treeId || "";
   const { gateByDiscoveries = false, selectedMoonId = null, selectedPostId = null } = opts;
@@ -4320,11 +4321,11 @@ function useBqGraphData(store, treeId, opts = {}) {
   }, [rawLexicons, nidsByLex, discoveredTermIds]);
   const highlightedNids = useMemo(() => {
     if (!selectedMoonId) return void 0;
-    return nidsByLex.get(selectedMoonId) || /* @__PURE__ */ new Set();
+    return nidsByLex.get(selectedMoonId) || EMPTY_NID_SET;
   }, [selectedMoonId, nidsByLex]);
   const relatedMoonIds = useMemo(() => {
     if (!selectedMoonId) return void 0;
-    const myNids = nidsByLex.get(selectedMoonId) || /* @__PURE__ */ new Set();
+    const myNids = nidsByLex.get(selectedMoonId) || EMPTY_NID_SET;
     const ids = /* @__PURE__ */ new Set();
     for (const nid of myNids) {
       const here = lexsByNid.get(nid) || [];
@@ -4808,39 +4809,32 @@ const plugin = ({ React, ui, store, sdk, icons }) => {
     const navTreeId = useNav().treeId;
     const sharedTreeId = (_a = sdk.shared((s) => s == null ? void 0 : s.bq)) == null ? void 0 : _a.treeId;
     const treeId = navTreeId || sharedTreeId || "";
-    const nodes = store.useChildren(treeId, "node");
-    const terms = store.useChildren(treeId, "lexicon");
     const discoveries = store.usePosts("discovery");
-    const { nidMap } = useLexMaps();
-    const { density, discPairs, allPairs, nextNode } = useMemo2(() => {
-      const nodeIdSet = new Set(nodes.map((n) => String(n.data.nodeId)));
+    const data = useBqGraphData(store, treeId, { gateByDiscoveries: true });
+    const { density, discPairs, allPairs } = useMemo2(() => {
+      const nodeIdSet = new Set(data.rawNodes.map((n) => String(n.data.nodeId)));
       const discTermIds = new Set(discoveries.map((d2) => String(d2.data.termId)));
-      const discNodeIds = new Set(nodes.filter((n) => Number(n.data.hits) > 0).map((n) => String(n.data.nodeId)));
       const all = /* @__PURE__ */ new Set();
       const disc = /* @__PURE__ */ new Set();
-      const scores = /* @__PURE__ */ new Map();
-      for (const t of terms) {
-        const tn = (nidMap.get(t.id) || []).filter((x2) => nodeIdSet.has(x2));
+      for (const t of data.rawLexicons) {
+        const tn = Array.from(data.nidsByLex.get(t.id) || []).filter((x2) => nodeIdSet.has(x2));
         const isDisc = discTermIds.has(t.id);
         for (let i = 0; i < tn.length; i++) for (let j = i + 1; j < tn.length; j++) {
-          const key = [tn[i], tn[j]].sort().join(":");
+          const a2 = tn[i], b = tn[j];
+          const key = a2 < b ? `${a2}\0${b}` : `${b}\0${a2}`;
           all.add(key);
           if (isDisc) disc.add(key);
         }
-        if (discNodeIds.size && tn.some((x2) => discNodeIds.has(x2))) {
-          for (const x2 of tn) if (!discNodeIds.has(x2)) scores.set(x2, (scores.get(x2) || 0) + 1);
-        }
       }
-      let bestNid = "", bestScore = 0;
-      for (const [k, v] of scores) if (v > bestScore) {
-        bestNid = k;
-        bestScore = v;
-      }
-      const next = bestNid ? nodes.find((n) => String(n.data.nodeId) === bestNid) || null : null;
-      return { density: all.size ? Math.round(disc.size / all.size * 100) : 0, discPairs: disc.size, allPairs: all.size, nextNode: next };
-    }, [nodes, terms, discoveries, nidMap]);
+      return { density: all.size ? Math.round(disc.size / all.size * 100) : 0, discPairs: disc.size, allPairs: all.size };
+    }, [data.rawNodes, data.rawLexicons, data.nidsByLex, discoveries]);
+    const nextNode = useMemo2(() => {
+      if (!data.nextNid) return null;
+      return data.rawNodes.find((n) => String(n.data.nodeId) === data.nextNid) || null;
+    }, [data.nextNid, data.rawNodes]);
     if (!treeId) return /* @__PURE__ */ jsx(ui.Placeholder, { text: "Wybierz drzewo" });
-    const d = nodes.filter((n) => Number(n.data.hits) > 0);
+    const d = data.rawNodes.filter((n) => Number(n.data.hits) > 0);
+    const nodes = data.rawNodes;
     return /* @__PURE__ */ jsx(ui.Box, { header: /* @__PURE__ */ jsx(ui.Cell, { label: true, children: "Postęp" }), body: d.length === 0 ? /* @__PURE__ */ jsx(ui.Placeholder, { text: "Odkrywaj węzły na mapie", children: /* @__PURE__ */ jsx(Award, { size: 32 }) }) : /* @__PURE__ */ jsxs(ui.Stack, { children: [
       /* @__PURE__ */ jsxs(ui.Stats, { children: [
         /* @__PURE__ */ jsx(ui.Stat, { title: "Gęstość", value: `${density}%` }),

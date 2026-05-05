@@ -464,40 +464,39 @@ const plugin: PluginFactory = ({ React, ui, store, sdk, icons }) => {
     const navTreeId = useNav().treeId
     const sharedTreeId = (sdk.shared((s: any) => s?.bq) as any)?.treeId as string | undefined
     const treeId = navTreeId || sharedTreeId || ''
-    const nodes = store.useChildren(treeId, 'node') as PostRecord[]
-    const terms = store.useChildren(treeId, 'lexicon') as PostRecord[]
     const discoveries = store.usePosts('discovery') as PostRecord[]
-    const { nidMap } = useLexMaps()
+    // Szyna danych — adapter dostarcza nextNid + nidsByLex + rawNodes/rawLexicons. Plugin nie powtarza heurystyki.
+    const data = useBqGraphData(store, treeId, { gateByDiscoveries: true })
 
-    // Density + next-node suggestion (memoized)
-    const { density, discPairs, allPairs, nextNode } = useMemo(() => {
-      const nodeIdSet = new Set(nodes.map(n => String(n.data.nodeId)))
+    // Pair stats lokalnie — to plugin-specific metryka (% odkrytych co-occurrence pairs), nie część adaptera.
+    // next-node z data.nextNid (jedno źródło prawdy, bez sort+join hot-path).
+    const { density, discPairs, allPairs } = useMemo(() => {
+      const nodeIdSet = new Set(data.rawNodes.map(n => String(n.data.nodeId)))
       const discTermIds = new Set(discoveries.map(d => String(d.data.termId)))
-      const discNodeIds = new Set(nodes.filter(n => Number(n.data.hits) > 0).map(n => String(n.data.nodeId)))
       const all = new Set<string>()
       const disc = new Set<string>()
-      const scores = new Map<string, number>()
-      for (const t of terms) {
-        const tn = (nidMap.get(t.id) || []).filter(x => nodeIdSet.has(x))
+      for (const t of data.rawLexicons) {
+        const tn = Array.from(data.nidsByLex.get(t.id) || []).filter(x => nodeIdSet.has(x))
         const isDisc = discTermIds.has(t.id)
         for (let i = 0; i < tn.length; i++) for (let j = i + 1; j < tn.length; j++) {
-          const key = [tn[i], tn[j]].sort().join(':')
+          // Klucz pary: deterministyczny porządek bez sort+join (alokacje array+sort+string per pair).
+          const a = tn[i], b = tn[j]
+          const key = a < b ? `${a}\0${b}` : `${b}\0${a}`
           all.add(key)
           if (isDisc) disc.add(key)
         }
-        // next-node scoring: term touches a discovered node → boost its other nodes
-        if (discNodeIds.size && tn.some(x => discNodeIds.has(x))) {
-          for (const x of tn) if (!discNodeIds.has(x)) scores.set(x, (scores.get(x) || 0) + 1)
-        }
       }
-      let bestNid = '', bestScore = 0
-      for (const [k, v] of scores) if (v > bestScore) { bestNid = k; bestScore = v }
-      const next = bestNid ? nodes.find(n => String(n.data.nodeId) === bestNid) || null : null
-      return { density: all.size ? Math.round(disc.size / all.size * 100) : 0, discPairs: disc.size, allPairs: all.size, nextNode: next }
-    }, [nodes, terms, discoveries, nidMap])
+      return { density: all.size ? Math.round(disc.size / all.size * 100) : 0, discPairs: disc.size, allPairs: all.size }
+    }, [data.rawNodes, data.rawLexicons, data.nidsByLex, discoveries])
+
+    const nextNode = useMemo(() => {
+      if (!data.nextNid) return null
+      return data.rawNodes.find(n => String(n.data.nodeId) === data.nextNid) || null
+    }, [data.nextNid, data.rawNodes])
 
     if (!treeId) return <ui.Placeholder text="Wybierz drzewo" />
-    const d = nodes.filter(n => Number(n.data.hits) > 0)
+    const d = data.rawNodes.filter(n => Number(n.data.hits) > 0)
+    const nodes = data.rawNodes
     return (
       <ui.Box header={<ui.Cell label>Postęp</ui.Cell>} body={d.length === 0
         ? <ui.Placeholder text="Odkrywaj węzły na mapie"><Award size={32} /></ui.Placeholder>
