@@ -3156,12 +3156,6 @@ const SIM = {
 const ZOOM = { min: 0.5, max: 5, resetMs: 350 };
 const EMPTY_HITS = {};
 const EMPTY_FLASH_PAIRS = [];
-const COSMOS_KEYFRAMES_CSS = `
-@keyframes cosmos-sonar { 0% { transform: scale(${SONAR.scaleFrom}); opacity: ${SONAR.opacityFrom}; } 100% { transform: scale(${SONAR.scaleTo}); opacity: 0; } }
-@keyframes cosmos-flash { 0% { opacity: 0; stroke-width: 1; } 18% { opacity: 1; stroke-width: 5; } 100% { opacity: 0; stroke-width: 1; } }
-@keyframes cosmos-next { 0%, 100% { transform: scale(1); opacity: 0.3; } 50% { transform: scale(1.18); opacity: 0.85; } }
-`.trim();
-const Keyframes = () => /* @__PURE__ */ jsx("defs", { children: /* @__PURE__ */ jsx("style", { children: COSMOS_KEYFRAMES_CSS }) });
 const MOON = {
   size: 7,
   sizeSelected: 9,
@@ -3179,6 +3173,12 @@ const SONAR = {
   opacityFrom: 0.55,
   strokeWidth: 2.2
 };
+const COSMOS_KEYFRAMES_CSS = `
+@keyframes cosmos-sonar { 0% { transform: scale(${SONAR.scaleFrom}); opacity: ${SONAR.opacityFrom}; } 100% { transform: scale(${SONAR.scaleTo}); opacity: 0; } }
+@keyframes cosmos-flash { 0% { opacity: 0; stroke-width: 1; } 18% { opacity: 1; stroke-width: 5; } 100% { opacity: 0; stroke-width: 1; } }
+@keyframes cosmos-next { 0%, 100% { transform: scale(1); opacity: 0.3; } 50% { transform: scale(1.18); opacity: 0.85; } }
+`.trim();
+const Keyframes = () => /* @__PURE__ */ jsx("defs", { children: /* @__PURE__ */ jsx("style", { children: COSMOS_KEYFRAMES_CSS }) });
 const LAYOUT = {
   cx: 300,
   cy: 300,
