@@ -3614,13 +3614,12 @@ const Moon = (p) => {
       "circle",
       {
         cx: 0,
-        cy: size * 0.4,
-        r: p.selected ? size + 8 : 0,
+        cy: size + 2,
+        r: p.selected ? size + 18 : 0,
         fill: setPlateColor,
         opacity: p.selected ? 0.7 : 0,
         style: {
-          transition: "r 300ms ease-out, cy 300ms ease-out, opacity 300ms ease-out, fill 350ms ease-out",
-          filter: "blur(1px)"
+          transition: "r 300ms ease-out, cy 300ms ease-out, opacity 300ms ease-out, fill 350ms ease-out"
         },
         pointerEvents: "none"
       }
