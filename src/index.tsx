@@ -134,11 +134,11 @@ const plugin: PluginFactory = ({ React, ui, store, sdk, icons }) => {
     return <SkillTreeBody treeId={treeId} />
   }
 
-  // SkillTreeBody: tutaj treeId jest gwarantowane non-null. Wszystkie hooki PRZED jakimkolwiek conditional return.
+  // SkillTreeBody: konsument szyny danych. Plugin nie transformuje — adapter dostarcza gotowe.
   function SkillTreeBody({ treeId }: { treeId: string }) {
     const { sel } = useNav()
 
-    // Świeżo odkryte połączenia — przychodzi z readera przez sdk.shared.bqFlash
+    // Świeżo odkryte połączenia — flash z sdk.shared.bqFlash. Plugin-specific subskrypcja, zostaje.
     const flash = sdk.shared((s: any) => s?.bqFlash) as { fromNid?: string; toNid?: string } | undefined
     const [discoveredPairs, setDiscoveredPairs] = useState<{ fromNid: string; toNid: string; fresh: boolean }[]>([])
     useEffect(() => { setDiscoveredPairs([]) }, [treeId])
@@ -154,39 +154,11 @@ const plugin: PluginFactory = ({ React, ui, store, sdk, icons }) => {
       sdk.shared.setState({ bqFlash: null })
     }, [flash])
 
-    // JEDEN adapter dla obu pluginów BQ — z gateByDiscoveries=true (gameplay: tylko odkryte termy).
-    const data = useBqGraphData(store as any, treeId, { gateByDiscoveries: true })
-
-    // Plugin-specific gameplay state: hits, nextNid, selectedNid.
-    const hits = useMemo(() => {
-      const m: Record<string, number> = {}
-      for (const n of data.rawNodes) m[String(n.data.nodeId)] = Number(n.data.hits) || 0
-      return m
-    }, [data.rawNodes])
-
-    const nextNid = useMemo(() => {
-      const discNodeIds = new Set(data.rawNodes.filter(n => Number(n.data.hits) > 0).map(n => String(n.data.nodeId)))
-      if (!discNodeIds.size) {
-        const sorted = [...data.rawNodes].sort((a, b) => Number(a.data.tier) - Number(b.data.tier))
-        return sorted[0] ? String(sorted[0].data.nodeId) : null
-      }
-      const scores = new Map<string, number>()
-      for (const t of data.rawLexicons) {
-        const tn = Array.from(data.nidsByLex.get(t.id) || [])
-        if (!tn.some(x => discNodeIds.has(x))) continue
-        for (const x of tn) if (!discNodeIds.has(x)) scores.set(x, (scores.get(x) || 0) + 1)
-      }
-      let best = '', bs = 0
-      for (const [k, v] of scores) if (v > bs) { best = k; bs = v }
-      return best || null
-    }, [data.rawNodes, data.rawLexicons, data.nidsByLex])
-
-    // CosmosGraph operuje na nid (logiczny id). Plugin trzyma `sel` jako post id.
-    const selectedNid = useMemo(() => {
-      if (!sel) return null
-      const post = data.rawNodes.find(n => n.id === sel)
-      return post ? String(post.data.nodeId) : null
-    }, [sel, data.rawNodes])
+    // Szyna danych — gameplay mode (gating + hits + nextNid + post id ↔ nid lookup)
+    const data = useBqGraphData(store, treeId, {
+      gateByDiscoveries: true,
+      selectedPostId: sel,
+    })
 
     if (!data.rawNodes.length) return <ui.Placeholder text="Zaimportuj paczkę bazową" />
 
@@ -198,7 +170,7 @@ const plugin: PluginFactory = ({ React, ui, store, sdk, icons }) => {
         contextEdges={data.contextEdges}
         branches={data.branches}
         relTypes={data.relTypes}
-        selectedNid={selectedNid}
+        selectedNid={data.selectedNid}
         onSelectNode={(nid) => {
           const post = data.rawNodes.find(n => String(n.data.nodeId) === nid)
           if (!post) return
@@ -206,7 +178,7 @@ const plugin: PluginFactory = ({ React, ui, store, sdk, icons }) => {
           sdk.shared.setState({ bq: { treeId, nodeId: nid, postId: post.id } })
         }}
         onDeselect={() => useNav.setState({ sel: null })}
-        progress={{ hits, flashPairs: discoveredPairs, nextNid }}
+        progress={{ hits: data.hits, flashPairs: discoveredPairs, nextNid: data.nextNid }}
         bigBranches={['epoki']}
       />
     )

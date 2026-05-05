@@ -4089,9 +4089,10 @@ const catColor = (c2) => {
   if (!c2) return COSMOS_TOKENS.tok(COSMOS_TOKENS.PALETTE[0]);
   return COSMOS_TOKENS.tok(COSMOS_TOKENS.PALETTE[COSMOS_TOKENS.hashStr(c2) % COSMOS_TOKENS.PALETTE.length]);
 };
+const EDGE_KEY_SEP = "\0";
 function useBqGraphData(store, treeId, opts = {}) {
   const tid = treeId || "";
-  const { gateByDiscoveries = false, selectedMoonId = null } = opts;
+  const { gateByDiscoveries = false, selectedMoonId = null, selectedPostId = null } = opts;
   const rawNodes = store.useChildren(tid, "node");
   const rawEdges = store.useChildren(tid, "edge");
   const rawBranches = store.useChildren(tid, "branch");
@@ -4104,7 +4105,8 @@ function useBqGraphData(store, treeId, opts = {}) {
     const m2 = /* @__PURE__ */ new Map();
     for (const c2 of rawAllContent) {
       if (String(c2.data.contentType) === "quiz") continue;
-      m2.set(c2.parentId, (m2.get(c2.parentId) || 0) + 1);
+      const pid = c2.parentId;
+      if (pid) m2.set(pid, (m2.get(pid) || 0) + 1);
     }
     return m2;
   }, [rawAllContent]);
@@ -4113,7 +4115,7 @@ function useBqGraphData(store, treeId, opts = {}) {
     const lexsByNid2 = /* @__PURE__ */ new Map();
     const nidsByLex2 = /* @__PURE__ */ new Map();
     for (const ln of rawAllLexNodes) {
-      const lex = lexById.get(ln.parentId);
+      const lex = ln.parentId ? lexById.get(ln.parentId) : void 0;
       if (!lex) continue;
       const nid = String(ln.data.nid);
       if (!lexsByNid2.has(nid)) lexsByNid2.set(nid, []);
@@ -4175,7 +4177,7 @@ function useBqGraphData(store, treeId, opts = {}) {
       for (let i = 0; i < nidsArr.length; i++) {
         for (let j = i + 1; j < nidsArr.length; j++) {
           const [a2, b] = [nidsArr[i], nidsArr[j]].sort();
-          const key = `${a2}:${b}`;
+          const key = `${a2}${EDGE_KEY_SEP}${b}`;
           if (!map.has(key)) map.set(key, { from: a2, to: b, rels: /* @__PURE__ */ new Map() });
           const e = map.get(key);
           e.rels.set(rel, (e.rels.get(rel) || 0) + 1);
@@ -4210,6 +4212,36 @@ function useBqGraphData(store, treeId, opts = {}) {
     }
     return ids;
   }, [selectedMoonId, nidsByLex, lexsByNid]);
+  const hits = useMemo(() => {
+    const m2 = {};
+    for (const n of rawNodes) m2[String(n.data.nodeId)] = Number(n.data.hits) || 0;
+    return m2;
+  }, [rawNodes]);
+  const nextNid = useMemo(() => {
+    if (!gateByDiscoveries) return null;
+    const discNodeIds = new Set(rawNodes.filter((n) => Number(n.data.hits) > 0).map((n) => String(n.data.nodeId)));
+    if (!discNodeIds.size) {
+      const sorted = [...rawNodes].sort((a2, b) => Number(a2.data.tier) - Number(b.data.tier));
+      return sorted[0] ? String(sorted[0].data.nodeId) : null;
+    }
+    const scores = /* @__PURE__ */ new Map();
+    for (const t of rawLexicons) {
+      const tn = Array.from(nidsByLex.get(t.id) || []);
+      if (!tn.some((x2) => discNodeIds.has(x2))) continue;
+      for (const x2 of tn) if (!discNodeIds.has(x2)) scores.set(x2, (scores.get(x2) || 0) + 1);
+    }
+    let best = "", bs = 0;
+    for (const [k, v] of scores) if (v > bs) {
+      best = k;
+      bs = v;
+    }
+    return best || null;
+  }, [gateByDiscoveries, rawNodes, rawLexicons, nidsByLex]);
+  const selectedNid = useMemo(() => {
+    if (!selectedPostId) return null;
+    const post = rawNodes.find((n) => n.id === selectedPostId);
+    return post ? String(post.data.nodeId) : null;
+  }, [selectedPostId, rawNodes]);
   return {
     nodes,
     moons,
@@ -4219,6 +4251,9 @@ function useBqGraphData(store, treeId, opts = {}) {
     relTypes,
     highlightedNids,
     relatedMoonIds,
+    hits,
+    nextNid,
+    selectedNid,
     rawNodes,
     rawLexicons,
     rawAllLexNodes,
@@ -4361,36 +4396,10 @@ const plugin = ({ React, ui, store, sdk, icons }) => {
       });
       sdk.shared.setState({ bqFlash: null });
     }, [flash]);
-    const data = useBqGraphData(store, treeId, { gateByDiscoveries: true });
-    const hits = useMemo2(() => {
-      const m2 = {};
-      for (const n of data.rawNodes) m2[String(n.data.nodeId)] = Number(n.data.hits) || 0;
-      return m2;
-    }, [data.rawNodes]);
-    const nextNid = useMemo2(() => {
-      const discNodeIds = new Set(data.rawNodes.filter((n) => Number(n.data.hits) > 0).map((n) => String(n.data.nodeId)));
-      if (!discNodeIds.size) {
-        const sorted = [...data.rawNodes].sort((a2, b) => Number(a2.data.tier) - Number(b.data.tier));
-        return sorted[0] ? String(sorted[0].data.nodeId) : null;
-      }
-      const scores = /* @__PURE__ */ new Map();
-      for (const t of data.rawLexicons) {
-        const tn = Array.from(data.nidsByLex.get(t.id) || []);
-        if (!tn.some((x2) => discNodeIds.has(x2))) continue;
-        for (const x2 of tn) if (!discNodeIds.has(x2)) scores.set(x2, (scores.get(x2) || 0) + 1);
-      }
-      let best = "", bs = 0;
-      for (const [k, v] of scores) if (v > bs) {
-        best = k;
-        bs = v;
-      }
-      return best || null;
-    }, [data.rawNodes, data.rawLexicons, data.nidsByLex]);
-    const selectedNid = useMemo2(() => {
-      if (!sel) return null;
-      const post = data.rawNodes.find((n) => n.id === sel);
-      return post ? String(post.data.nodeId) : null;
-    }, [sel, data.rawNodes]);
+    const data = useBqGraphData(store, treeId, {
+      gateByDiscoveries: true,
+      selectedPostId: sel
+    });
     if (!data.rawNodes.length) return /* @__PURE__ */ jsx(ui.Placeholder, { text: "Zaimportuj paczkę bazową" });
     return /* @__PURE__ */ jsx(
       CosmosGraph,
@@ -4401,7 +4410,7 @@ const plugin = ({ React, ui, store, sdk, icons }) => {
         contextEdges: data.contextEdges,
         branches: data.branches,
         relTypes: data.relTypes,
-        selectedNid,
+        selectedNid: data.selectedNid,
         onSelectNode: (nid) => {
           const post = data.rawNodes.find((n) => String(n.data.nodeId) === nid);
           if (!post) return;
@@ -4409,7 +4418,7 @@ const plugin = ({ React, ui, store, sdk, icons }) => {
           sdk.shared.setState({ bq: { treeId, nodeId: nid, postId: post.id } });
         },
         onDeselect: () => useNav.setState({ sel: null }),
-        progress: { hits, flashPairs: discoveredPairs, nextNid },
+        progress: { hits: data.hits, flashPairs: discoveredPairs, nextNid: data.nextNid },
         bigBranches: ["epoki"]
       }
     );
