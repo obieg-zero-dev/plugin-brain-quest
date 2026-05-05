@@ -4008,9 +4008,9 @@ function CosmosGraph(props) {
             {
               cx: x2,
               cy: y2,
-              r: MOON.sizeSelected + 65,
+              r: MOON.sizeSelected + 95,
               fill: m2.color,
-              style: { mixBlendMode: "screen", opacity: 0.22, filter: "blur(14px)" },
+              style: { mixBlendMode: "screen", opacity: 0.16, filter: "blur(18px)" },
               pointerEvents: "none"
             },
             `plate-${n.nid}-${m2.id}`
