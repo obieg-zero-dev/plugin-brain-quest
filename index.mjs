@@ -4002,19 +4002,37 @@ function CosmosGraph(props) {
         const ang = i / Math.max(myMoons.length, 1) * Math.PI * 2;
         const x2 = p.x + Math.cos(ang) * moonOrbitR;
         const y2 = p.y + Math.sin(ang) * moonOrbitR;
+        const gradId = `${instanceId}-plate-${safeIdAtom(n.nid)}`;
+        const plateR = MOON.sizeSelected + 110;
         plates.push(
-          /* @__PURE__ */ jsx(
-            "circle",
-            {
-              cx: x2,
-              cy: y2,
-              r: MOON.sizeSelected + 95,
-              fill: m2.color,
-              style: { mixBlendMode: "screen", opacity: 0.16, filter: "blur(18px)" },
-              pointerEvents: "none"
-            },
-            `plate-${n.nid}-${m2.id}`
-          )
+          /* @__PURE__ */ jsxs("g", { children: [
+            /* @__PURE__ */ jsxs(
+              "radialGradient",
+              {
+                id: gradId,
+                gradientUnits: "userSpaceOnUse",
+                cx: x2,
+                cy: y2,
+                r: plateR,
+                children: [
+                  /* @__PURE__ */ jsx("stop", { offset: "0%", stopColor: m2.color, stopOpacity: "0.18" }),
+                  /* @__PURE__ */ jsx("stop", { offset: "45%", stopColor: m2.color, stopOpacity: "0.10" }),
+                  /* @__PURE__ */ jsx("stop", { offset: "100%", stopColor: m2.color, stopOpacity: "0" })
+                ]
+              }
+            ),
+            /* @__PURE__ */ jsx(
+              "circle",
+              {
+                cx: x2,
+                cy: y2,
+                r: plateR,
+                fill: `url(#${gradId})`,
+                style: { mixBlendMode: "screen" },
+                pointerEvents: "none"
+              }
+            )
+          ] }, `plate-${n.nid}-${m2.id}`)
         );
       });
     }
