@@ -3871,11 +3871,11 @@ function CosmosGraph(props) {
     const d = edgeDim(
       isEdgeFocused(e.from, e.to),
       isEdgeRelevant(e.from, e.to),
-      hasType ? 0.35 : 0.65,
-      // idle — typed 65% color, untyped 35% (subtle tint)
+      0.35,
+      // idle — wszystkie edges (typed/untyped) tej samej jasności co progression-style
       hasType ? 0.05 : 0.3,
       // focused
-      hasType ? 0.45 : 0.55
+      hasType ? 0.4 : 0.45
       // relevant
     );
     const stronglyVisible = d < 0.6;
@@ -3905,12 +3905,12 @@ function CosmosGraph(props) {
     const d = edgeDim(
       isEdgeFocused(ce.from, ce.to),
       isEdgeRelevant(ce.from, ce.to),
-      1 - Math.min(0.2 + strength * 0.2, 0.4),
-      // idle — max 40% color (subtle tint)
+      1 - Math.min(0.4 + strength * 0.25, 0.65),
+      // idle — sweet spot 0.35-0.6 (35-60% color), match progression-style
       1 - Math.min(0.5 + strength * 0.4, 0.9),
       // focused
-      0.6
-      // relevant — 40% color
+      0.5
+      // relevant
     );
     return /* @__PURE__ */ jsx("g", { children: /* @__PURE__ */ jsx(
       Edge,
