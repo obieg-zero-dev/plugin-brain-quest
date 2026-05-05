@@ -3490,14 +3490,15 @@ const Planet = (p) => {
             pointerEvents: "none"
           }
         ),
-        (isSel || isHl) && /* @__PURE__ */ jsx(
+        /* @__PURE__ */ jsx(
           "circle",
           {
             cx: p.x,
             cy: p.y,
             r: haloR,
             fill: haloColor,
-            opacity: 0.3,
+            opacity: isSel || isHl ? 0.3 : 0,
+            style: { transition: "r 250ms ease-out, opacity 300ms ease-out, fill 350ms ease-out" },
             pointerEvents: "none"
           }
         ),
@@ -3508,6 +3509,7 @@ const Planet = (p) => {
             cy: p.y + liftOff,
             r,
             fill: liftFill,
+            style: { transition: "r 250ms ease-out, cy 250ms ease-out, fill 350ms ease-out" },
             pointerEvents: "none"
           }
         ),
@@ -3521,7 +3523,11 @@ const Planet = (p) => {
             stroke: strokeColor,
             strokeWidth: isFrontier ? 1.5 : 2,
             strokeDasharray: isFrontier ? "3 2" : void 0,
-            style: { cursor: p.onClick ? "pointer" : "default" },
+            style: {
+              cursor: p.onClick ? "pointer" : "default",
+              // Płynne przejścia: rozmiar (klik → grow), kolor (frontier → discovered), border (dashed → solid).
+              transition: "r 250ms ease-out, fill 350ms ease-out, stroke 350ms ease-out, stroke-width 250ms ease-out, stroke-dasharray 350ms ease-out"
+            },
             onClick: p.onClick ? (e) => {
               e.stopPropagation();
               p.onClick();
@@ -3582,6 +3588,7 @@ const Moon = (p) => {
   const dimAmt = p.dimmed ? 0.7 : 0;
   const bodyFill = dimAmt ? dim(p.color, dimAmt) : p.color;
   const liftFill = dimAmt ? dim(darken(p.color), dimAmt) : darken(p.color);
+  const rectTransition = "x 250ms ease-out, y 250ms ease-out, width 250ms ease-out, height 250ms ease-out, fill 350ms ease-out, stroke 250ms ease-out";
   return /* @__PURE__ */ jsxs("g", { children: [
     p.related && /* @__PURE__ */ jsx(
       "rect",
@@ -3609,6 +3616,7 @@ const Moon = (p) => {
         rx: MOON.rx,
         ry: MOON.rx,
         fill: liftFill,
+        style: { transition: rectTransition },
         pointerEvents: "none"
       }
     ),
@@ -3624,7 +3632,7 @@ const Moon = (p) => {
         fill: bodyFill,
         stroke: p.selected ? COSMOS.label : "none",
         strokeWidth: 1,
-        style: { cursor: p.onClick ? "pointer" : "default" },
+        style: { cursor: p.onClick ? "pointer" : "default", transition: rectTransition },
         onClick: p.onClick ? (e) => {
           e.stopPropagation();
           p.onClick();
