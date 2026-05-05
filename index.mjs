@@ -3610,17 +3610,14 @@ const Moon = (p) => {
   const glowFilter = p.related ? `drop-shadow(0 0 4px ${COSMOS.highlight})` : "drop-shadow(0 0 0 transparent)";
   const setPlateColor = `color-mix(in srgb, ${p.color} 15%, ${COSMOS.bgFrom})`;
   return /* @__PURE__ */ jsxs("g", { transform: `translate(${p.x} ${p.y})`, children: [
-    /* @__PURE__ */ jsx(
+    p.selected && /* @__PURE__ */ jsx(
       "circle",
       {
         cx: 0,
-        cy: size + 2,
-        r: p.selected ? size + 18 : 0,
+        cy: 0,
+        r: MOON.sizeSelected + 18,
         fill: setPlateColor,
-        opacity: p.selected ? 0.7 : 0,
-        style: {
-          transition: "r 300ms ease-out, cy 300ms ease-out, opacity 300ms ease-out, fill 350ms ease-out"
-        },
+        opacity: 0.9,
         pointerEvents: "none"
       }
     ),
