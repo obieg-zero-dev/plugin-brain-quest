@@ -3151,6 +3151,8 @@ const SIM = {
   velocityDecay: 0.5
 };
 const ZOOM = { min: 0.5, max: 5, resetMs: 350 };
+const EMPTY_HITS = {};
+const EMPTY_FLASH_PAIRS = [];
 const MOON = {
   size: 7,
   sizeSelected: 9,
@@ -3532,7 +3534,7 @@ const Planet = (p) => {
             fill: COSMOS.labelStroke,
             fontWeight: 700,
             pointerEvents: "none",
-            children: p.tier
+            children: p.tier.slice(0, 3)
           }
         ) : null
       ]
@@ -3635,8 +3637,8 @@ function CosmosGraph(props) {
   } = props;
   const cx = LAYOUT.cx, cy = LAYOUT.cy;
   const gating = !!progress;
-  const hits = (progress == null ? void 0 : progress.hits) ?? {};
-  const flashPairs = (progress == null ? void 0 : progress.flashPairs) ?? [];
+  const hits = (progress == null ? void 0 : progress.hits) ?? EMPTY_HITS;
+  const flashPairs = (progress == null ? void 0 : progress.flashPairs) ?? EMPTY_FLASH_PAIRS;
   const nextNid = (progress == null ? void 0 : progress.nextNid) ?? null;
   const bigBranchSet = useMemo(() => new Set(bigBranches), [bigBranches]);
   const { visible, frontier } = useMemo(() => {
@@ -3719,6 +3721,7 @@ function CosmosGraph(props) {
   const gRef = useRef(null);
   const zoomRef = useRef(null);
   const simRef = useRef(null);
+  const simNodesRef = useRef(/* @__PURE__ */ new Map());
   const [zoomK, setZoomK] = useState(1);
   const [panning, setPanning] = useState(false);
   const [hovered, setHovered] = useState(null);
@@ -3730,7 +3733,23 @@ function CosmosGraph(props) {
     return m2;
   });
   useEffect(() => {
-    const simNodes = initialSimNodes.map((n) => ({ ...n }));
+    const persistent = simNodesRef.current;
+    const simNodes = initialSimNodes.map((n) => {
+      const existing = persistent.get(n.id);
+      if (existing) {
+        existing.targetR = n.targetR;
+        existing.color = n.color;
+        existing.branch = n.branch;
+        return existing;
+      }
+      const fresh = { ...n };
+      persistent.set(n.id, fresh);
+      return fresh;
+    });
+    const visibleIds = new Set(initialSimNodes.map((n) => n.id));
+    for (const id2 of Array.from(persistent.keys())) {
+      if (!visibleIds.has(id2)) persistent.delete(id2);
+    }
     const links = simLinks.map((l) => ({ source: l.source, target: l.target }));
     const sim = forceSimulation(simNodes).force("radial", forceRadial((d) => d.targetR, cx, cy).strength(SIM.radial)).force("collide", forceCollide(SIM.collide)).force("link", forceLink(links).id((d) => d.id).distance(SIM.linkDistance).strength(SIM.linkStrength)).force("charge", forceManyBody().strength(SIM.charge)).alpha(SIM.alpha).alphaDecay(SIM.alphaDecay).alphaMin(SIM.alphaMin).velocityDecay(SIM.velocityDecay).on("tick", () => {
       const next = /* @__PURE__ */ new Map();
@@ -3863,12 +3882,14 @@ function CosmosGraph(props) {
       return /* @__PURE__ */ jsx(FlashEdge, { a: a2, b, fresh: fp.fresh }, `fl-${i}-${fp.fromNid}-${fp.toNid}`);
     }) });
   }, [visFlashPairs, positions]);
+  const HIGHLIGHT_LINES_CAP = 60;
   const highlightLines = useMemo(() => {
     if (!selectedMoonId || !highlightedNids) return null;
     const nids = Array.from(highlightedNids);
     const lines = [];
-    for (let i = 0; i < nids.length; i++) {
+    outer: for (let i = 0; i < nids.length; i++) {
       for (let j = i + 1; j < nids.length; j++) {
+        if (lines.length >= HIGHLIGHT_LINES_CAP) break outer;
         const a2 = positions.get(nids[i]);
         const b = positions.get(nids[j]);
         if (!a2 || !b) continue;
@@ -4067,13 +4088,13 @@ function CosmosGraph(props) {
     ] })
   ] });
 }
-const COSMOS_TOKENS = {
+const COSMOS_TOKENS = Object.freeze({
   PALETTE,
   planetRadius,
   tok,
   darken,
   hashStr
-};
+});
 const CAT_COLORS = {
   motyw: "#f59e0b",
   topos: "#ef4444",
