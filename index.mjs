@@ -3156,6 +3156,12 @@ const SIM = {
 const ZOOM = { min: 0.5, max: 5, resetMs: 350 };
 const EMPTY_HITS = {};
 const EMPTY_FLASH_PAIRS = [];
+const COSMOS_KEYFRAMES_CSS = `
+@keyframes cosmos-sonar { 0% { transform: scale(${SONAR.scaleFrom}); opacity: ${SONAR.opacityFrom}; } 100% { transform: scale(${SONAR.scaleTo}); opacity: 0; } }
+@keyframes cosmos-flash { 0% { opacity: 0; stroke-width: 1; } 18% { opacity: 1; stroke-width: 5; } 100% { opacity: 0; stroke-width: 1; } }
+@keyframes cosmos-next { 0%, 100% { transform: scale(1); opacity: 0.3; } 50% { transform: scale(1.18); opacity: 0.85; } }
+`.trim();
+const Keyframes = () => /* @__PURE__ */ jsx("defs", { children: /* @__PURE__ */ jsx("style", { children: COSMOS_KEYFRAMES_CSS }) });
 const MOON = {
   size: 7,
   sizeSelected: 9,
@@ -3388,6 +3394,8 @@ const Orbit = (p) => /* @__PURE__ */ jsxs(Fragment, { children: [
   )
 ] });
 const CastShadow = (p) => {
+  const fallbackId = useId();
+  const prefix = p.instanceId ?? `cg-${fallbackId.replace(/[^a-zA-Z0-9_-]/g, "")}`;
   const len = p.length ?? 110;
   const dx = p.planetX - p.sunX, dy = p.planetY - p.sunY;
   const d = Math.hypot(dx, dy) || 1;
@@ -3399,7 +3407,7 @@ const CastShadow = (p) => {
   const x2 = p.planetX - px * w0, y2 = p.planetY - py * w0;
   const x3 = p.planetX - px * w1 + ux * len, y3 = p.planetY - py * w1 + uy * len;
   const x4 = p.planetX + px * w1 + ux * len, y4 = p.planetY + py * w1 + uy * len;
-  const gradId = `${p.instanceId}-shadow-${safeIdAtom(p.id)}`;
+  const gradId = `${prefix}-shadow-${safeIdAtom(p.id)}`;
   return /* @__PURE__ */ jsxs(Fragment, { children: [
     /* @__PURE__ */ jsxs(
       "linearGradient",
@@ -4046,11 +4054,7 @@ function CosmosGraph(props) {
         },
         onClick: () => onDeselect == null ? void 0 : onDeselect(),
         children: [
-          /* @__PURE__ */ jsx("defs", { children: /* @__PURE__ */ jsx("style", { children: `
-            @keyframes cosmos-sonar { 0% { transform: scale(${SONAR.scaleFrom}); opacity: ${SONAR.opacityFrom}; } 100% { transform: scale(${SONAR.scaleTo}); opacity: 0; } }
-            @keyframes cosmos-flash { 0% { opacity: 0; stroke-width: 1; } 18% { opacity: 1; stroke-width: 5; } 100% { opacity: 0; stroke-width: 1; } }
-            @keyframes cosmos-next { 0%, 100% { transform: scale(1); opacity: 0.3; } 50% { transform: scale(1.18); opacity: 0.85; } }
-          ` }) }),
+          /* @__PURE__ */ jsx(Keyframes, {}),
           /* @__PURE__ */ jsxs("g", { ref: gRef, style: { willChange: "transform" }, children: [
             orbitsLayer,
             /* @__PURE__ */ jsx(Star, { cx, cy }),
