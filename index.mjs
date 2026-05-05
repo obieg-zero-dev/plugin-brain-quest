@@ -3198,7 +3198,8 @@ const tok = (name) => {
   return COSMOS.fallback;
 };
 const darken = (color2, amt = 0.45) => `color-mix(in srgb, ${color2} ${Math.round((1 - amt) * 100)}%, black)`;
-const dim = (color2, amt = 0.7) => `color-mix(in srgb, ${color2} ${Math.round((1 - amt) * 100)}%, ${COSMOS.bgTo})`;
+const DIM_TARGET = darken(COSMOS.bgTo, 0.35);
+const dim = (color2, amt = 0.7) => `color-mix(in srgb, ${color2} ${Math.round((1 - amt) * 100)}%, ${DIM_TARGET})`;
 const hashStr = (s) => {
   let h = 0;
   for (let i = 0; i < s.length; i++) h = h * 31 + s.charCodeAt(i) >>> 0;
