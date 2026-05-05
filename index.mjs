@@ -4009,7 +4009,7 @@ function CosmosGraph(props) {
               cx: x2,
               cy: y2,
               r: MOON.sizeSelected + 65,
-              fill: `color-mix(in srgb, ${m2.color} 6%, ${COSMOS.bgFrom})`,
+              fill: `color-mix(in srgb, ${m2.color} 4%, color-mix(in srgb, ${COSMOS.bgFrom} 50%, ${COSMOS.bgTo}))`,
               pointerEvents: "none"
             },
             `plate-${n.nid}-${m2.id}`
