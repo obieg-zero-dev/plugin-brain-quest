@@ -3330,6 +3330,7 @@ const Label = (p) => {
 const Edge = (p) => {
   const arrow = p.arrow ? arrowGeom(p.a, p.b, p.arrow.targetR) : null;
   const lineEnd = arrow ? arrow.lineEnd : p.b;
+  const finalColor = p.dim > 0 ? dim(p.color, p.dim) : p.color;
   return /* @__PURE__ */ jsxs(Fragment, { children: [
     /* @__PURE__ */ jsx(
       "line",
@@ -3338,15 +3339,22 @@ const Edge = (p) => {
         y1: p.a.y,
         x2: lineEnd.x,
         y2: lineEnd.y,
-        stroke: p.color,
-        strokeOpacity: p.op,
+        stroke: finalColor,
         strokeWidth: p.sw,
         strokeLinecap: "round",
         strokeDasharray: p.dashed ? "4 3" : void 0,
-        shapeRendering: "crispEdges"
+        shapeRendering: "crispEdges",
+        style: { transition: "stroke 350ms ease-out" }
       }
     ),
-    arrow && /* @__PURE__ */ jsx("path", { d: arrow.path, fill: p.color, opacity: p.op }),
+    arrow && /* @__PURE__ */ jsx(
+      "path",
+      {
+        d: arrow.path,
+        fill: finalColor,
+        style: { transition: "fill 350ms ease-out" }
+      }
+    ),
     p.label && /* @__PURE__ */ jsx(
       Label,
       {
@@ -3840,7 +3848,7 @@ function CosmosGraph(props) {
   const showAllLabels = zoomK >= 1.5;
   const labelOpacity = (sel, hov) => sel ? 1 : hov ? 0.95 : showAllLabels ? 0.8 : 0;
   const z = Math.max(zoomK, 0.5);
-  const edgeOpacity = (focused, relevant, idle, focusedOp, relevantOp, dim2 = 0.02) => !neighborSet ? idle : focused ? focusedOp : relevant ? relevantOp : dim2;
+  const edgeDim = (focused, relevant, idle, focusedDim, relevantDim, dimmedDim = 0.95) => !neighborSet ? idle : focused ? focusedDim : relevant ? relevantDim : dimmedDim;
   const orbitsLayer = useMemo(() => /* @__PURE__ */ jsx(Fragment, { children: orbits.map((o) => {
     const big = bigBranchSet.has(o.key);
     return /* @__PURE__ */ jsx("g", { style: big ? { strokeWidth: 1.5 } : void 0, children: /* @__PURE__ */ jsx(
@@ -3859,21 +3867,25 @@ function CosmosGraph(props) {
     const a2 = positions.get(e.from), b = positions.get(e.to);
     if (!a2 || !b) return null;
     const hasType = !!e.type;
-    const op = edgeOpacity(
+    const d = edgeDim(
       isEdgeFocused(e.from, e.to),
       isEdgeRelevant(e.from, e.to),
-      hasType ? 0.6 : 0.15,
-      hasType ? 0.95 : 0.7,
-      hasType ? 0.5 : 0.25
+      hasType ? 0.4 : 0.85,
+      // idle (no selection)
+      hasType ? 0.05 : 0.3,
+      // focused
+      hasType ? 0.5 : 0.75
+      // relevant
     );
+    const stronglyVisible = d < 0.6;
     return /* @__PURE__ */ jsx("g", { children: /* @__PURE__ */ jsx(
       Edge,
       {
         a: a2,
         b,
         color: branchColorByNid.get(e.to) || COSMOS.fallback,
-        op,
-        sw: hasType ? op > 0.3 ? 2 : 1.5 : op > 0.3 ? 1.5 : 1,
+        dim: d,
+        sw: hasType ? stronglyVisible ? 2 : 1.5 : stronglyVisible ? 1.5 : 1,
         dashed: contextNids.has(e.from) || contextNids.has(e.to),
         arrow: hasType ? { targetR: baseRByNid.get(e.to) || LAYOUT.defaultSize } : void 0,
         label: e.type && !!neighborSet && isEdgeFocused(e.from, e.to) ? { text: e.type, color: COSMOS.edgeLabel } : void 0,
@@ -3888,12 +3900,15 @@ function CosmosGraph(props) {
     const relColor = (def == null ? void 0 : def.color) || COSMOS.fallback;
     const relLabel = (def == null ? void 0 : def.label) || ce.relation;
     const strength = Math.min(0.4 + ce.count * 0.15, 0.9);
-    const op = edgeOpacity(
+    const d = edgeDim(
       isEdgeFocused(ce.from, ce.to),
       isEdgeRelevant(ce.from, ce.to),
-      ce.count < 2 ? 0 : Math.min(0.12 + strength * 0.15, 0.3),
-      Math.min(0.5 + strength * 0.4, 0.9),
-      0.25
+      ce.count < 2 ? 1 : 1 - Math.min(0.12 + strength * 0.15, 0.3),
+      // idle
+      1 - Math.min(0.5 + strength * 0.4, 0.9),
+      // focused
+      0.75
+      // relevant
     );
     return /* @__PURE__ */ jsx("g", { children: /* @__PURE__ */ jsx(
       Edge,
@@ -3901,7 +3916,7 @@ function CosmosGraph(props) {
         a: a2,
         b,
         color: relColor,
-        op,
+        dim: d,
         sw: 1 + Math.min(ce.count - 1, 2) * 0.4,
         dashed: contextNids.has(ce.from) || contextNids.has(ce.to),
         label: !!neighborSet && isEdgeFocused(ce.from, ce.to) ? { text: `${relLabel}${ce.count > 1 ? ` ·${ce.count}` : ""}`, color: relColor, size: 8, weight: 600 } : void 0,
@@ -3935,7 +3950,7 @@ function CosmosGraph(props) {
               a: a2,
               b,
               color: COSMOS.highlight,
-              op: 0.55,
+              dim: 0.45,
               sw: 1.5,
               zoomFactor: z
             },
