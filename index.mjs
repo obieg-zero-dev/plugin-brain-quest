@@ -4008,7 +4008,7 @@ function CosmosGraph(props) {
             {
               cx: x2,
               cy: y2,
-              r: MOON.sizeSelected + 18,
+              r: MOON.sizeSelected + 40,
               fill: `color-mix(in srgb, ${m2.color} 15%, ${COSMOS.bgFrom})`,
               opacity: 0.9,
               pointerEvents: "none"
