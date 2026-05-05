@@ -3465,103 +3465,109 @@ const Planet = (p) => {
   const liftFill = dimAmt ? dim(darken(p.color), dimAmt) : darken(p.color);
   const tierFill = dimAmt ? dim(COSMOS.labelStroke, dimAmt) : COSMOS.labelStroke;
   const strokeColor = isSel || isHl ? COSMOS.label : isFrontier ? p.color : "none";
-  return /* @__PURE__ */ jsxs(
-    "g",
-    {
-      onMouseEnter: p.onMouseEnter,
-      onMouseLeave: p.onMouseLeave,
-      style: isFrontier ? { opacity: 0.55, transition: "opacity 150ms" } : { transition: "opacity 150ms" },
-      children: [
-        p.isNext && /* @__PURE__ */ jsx(
-          "circle",
-          {
-            cx: p.x,
-            cy: p.y,
-            r: haloR + 2,
-            fill: "none",
-            stroke: COSMOS.highlight,
-            strokeWidth: 1.2,
-            opacity: 0.7,
-            style: {
-              transformBox: "fill-box",
-              transformOrigin: "center",
-              animation: "cosmos-next 2.2s ease-in-out infinite"
-            },
-            pointerEvents: "none"
-          }
-        ),
-        /* @__PURE__ */ jsx(
-          "circle",
-          {
-            cx: p.x,
-            cy: p.y,
-            r: haloR,
-            fill: haloColor,
-            opacity: isSel || isHl ? 0.3 : 0,
-            style: { transition: "r 250ms ease-out, opacity 300ms ease-out, fill 350ms ease-out" },
-            pointerEvents: "none"
-          }
-        ),
-        /* @__PURE__ */ jsx(
-          "circle",
-          {
-            cx: p.x,
-            cy: p.y + liftOff,
-            r,
-            fill: liftFill,
-            style: { transition: "r 250ms ease-out, cy 250ms ease-out, fill 350ms ease-out" },
-            pointerEvents: "none"
-          }
-        ),
-        /* @__PURE__ */ jsx(
-          "circle",
-          {
-            cx: p.x,
-            cy: p.y,
-            r,
-            fill: bodyFill,
-            stroke: strokeColor,
-            strokeWidth: isFrontier ? 1.5 : 2,
-            strokeDasharray: isFrontier ? "3 2" : void 0,
-            style: {
-              cursor: p.onClick ? "pointer" : "default",
-              // Płynne przejścia: rozmiar (klik → grow), kolor (frontier → discovered), border (dashed → solid).
-              transition: "r 250ms ease-out, fill 350ms ease-out, stroke 350ms ease-out, stroke-width 250ms ease-out, stroke-dasharray 350ms ease-out"
-            },
-            onClick: p.onClick ? (e) => {
-              e.stopPropagation();
-              p.onClick();
-            } : void 0
-          }
-        ),
-        isFrontier ? /* @__PURE__ */ jsx(
-          "text",
-          {
-            x: p.x,
-            y: p.y + tierFs * 0.35,
-            textAnchor: "middle",
-            fontSize: tierFs,
-            fill: p.color,
-            fontWeight: 700,
-            opacity: 0.9,
-            pointerEvents: "none",
-            children: "?"
-          }
-        ) : p.tier ? /* @__PURE__ */ jsx(
-          "text",
-          {
-            x: p.x,
-            y: p.y + tierFs * 0.35,
-            textAnchor: "middle",
-            fontSize: tierFs,
-            fill: tierFill,
-            fontWeight: 700,
-            pointerEvents: "none",
-            children: p.tier.slice(0, 3)
-          }
-        ) : null
-      ]
-    }
+  return (
+    // Outer g: pozycja-z-sim przez SVG transform attribute. BEZ transition — sim ticks updatują się
+    // natychmiast (każdy tick d3 wymusza nowe x,y; transition na pozycji = janky 5fps przy 60Hz tickach).
+    // Inner elementy używają lokalnych koord (cx=0/cy=0) i mają transition TYLKO na zmianach stanu.
+    /* @__PURE__ */ jsxs(
+      "g",
+      {
+        transform: `translate(${p.x} ${p.y})`,
+        onMouseEnter: p.onMouseEnter,
+        onMouseLeave: p.onMouseLeave,
+        style: isFrontier ? { opacity: 0.55, transition: "opacity 150ms" } : { transition: "opacity 150ms" },
+        children: [
+          p.isNext && /* @__PURE__ */ jsx(
+            "circle",
+            {
+              cx: 0,
+              cy: 0,
+              r: haloR + 2,
+              fill: "none",
+              stroke: COSMOS.highlight,
+              strokeWidth: 1.2,
+              opacity: 0.7,
+              style: {
+                transformBox: "fill-box",
+                transformOrigin: "center",
+                animation: "cosmos-next 2.2s ease-in-out infinite"
+              },
+              pointerEvents: "none"
+            }
+          ),
+          /* @__PURE__ */ jsx(
+            "circle",
+            {
+              cx: 0,
+              cy: 0,
+              r: haloR,
+              fill: haloColor,
+              opacity: isSel || isHl ? 0.3 : 0,
+              style: { transition: "r 250ms ease-out, opacity 300ms ease-out, fill 350ms ease-out" },
+              pointerEvents: "none"
+            }
+          ),
+          /* @__PURE__ */ jsx(
+            "circle",
+            {
+              cx: 0,
+              cy: liftOff,
+              r,
+              fill: liftFill,
+              style: { transition: "r 250ms ease-out, cy 250ms ease-out, fill 350ms ease-out" },
+              pointerEvents: "none"
+            }
+          ),
+          /* @__PURE__ */ jsx(
+            "circle",
+            {
+              cx: 0,
+              cy: 0,
+              r,
+              fill: bodyFill,
+              stroke: strokeColor,
+              strokeWidth: isFrontier ? 1.5 : 2,
+              strokeDasharray: isFrontier ? "3 2" : void 0,
+              style: {
+                cursor: p.onClick ? "pointer" : "default",
+                // Płynne przejścia: rozmiar (klik → grow), kolor (frontier → discovered), border (dashed → solid).
+                transition: "r 250ms ease-out, fill 350ms ease-out, stroke 350ms ease-out, stroke-width 250ms ease-out, stroke-dasharray 350ms ease-out"
+              },
+              onClick: p.onClick ? (e) => {
+                e.stopPropagation();
+                p.onClick();
+              } : void 0
+            }
+          ),
+          isFrontier ? /* @__PURE__ */ jsx(
+            "text",
+            {
+              x: 0,
+              y: tierFs * 0.35,
+              textAnchor: "middle",
+              fontSize: tierFs,
+              fill: p.color,
+              fontWeight: 700,
+              opacity: 0.9,
+              pointerEvents: "none",
+              children: "?"
+            }
+          ) : p.tier ? /* @__PURE__ */ jsx(
+            "text",
+            {
+              x: 0,
+              y: tierFs * 0.35,
+              textAnchor: "middle",
+              fontSize: tierFs,
+              fill: tierFill,
+              fontWeight: 700,
+              pointerEvents: "none",
+              children: p.tier.slice(0, 3)
+            }
+          ) : null
+        ]
+      }
+    )
   );
 };
 const FlashEdge = (p) => /* @__PURE__ */ jsx(
@@ -3583,18 +3589,16 @@ const FlashEdge = (p) => /* @__PURE__ */ jsx(
 );
 const Moon = (p) => {
   const size = p.selected ? MOON.sizeSelected : MOON.size;
-  const x0 = p.x - size / 2;
-  const y0 = p.y - size / 2;
   const dimAmt = p.dimmed ? 0.7 : 0;
   const bodyFill = dimAmt ? dim(p.color, dimAmt) : p.color;
   const liftFill = dimAmt ? dim(darken(p.color), dimAmt) : darken(p.color);
   const rectTransition = "x 250ms ease-out, y 250ms ease-out, width 250ms ease-out, height 250ms ease-out, fill 350ms ease-out, stroke 250ms ease-out";
-  return /* @__PURE__ */ jsxs("g", { children: [
+  return /* @__PURE__ */ jsxs("g", { transform: `translate(${p.x} ${p.y})`, children: [
     p.related && /* @__PURE__ */ jsx(
       "rect",
       {
-        x: p.x - MOON.ringSize / 2,
-        y: p.y - MOON.ringSize / 2,
+        x: -11 / 2,
+        y: -11 / 2,
         width: MOON.ringSize,
         height: MOON.ringSize,
         rx: MOON.ringRx,
@@ -3609,8 +3613,8 @@ const Moon = (p) => {
     /* @__PURE__ */ jsx(
       "rect",
       {
-        x: x0,
-        y: y0 + MOON.liftOff,
+        x: -size / 2,
+        y: -size / 2 + MOON.liftOff,
         width: size,
         height: size,
         rx: MOON.rx,
@@ -3623,8 +3627,8 @@ const Moon = (p) => {
     /* @__PURE__ */ jsx(
       "rect",
       {
-        x: x0,
-        y: y0,
+        x: -size / 2,
+        y: -size / 2,
         width: size,
         height: size,
         rx: MOON.rx,
