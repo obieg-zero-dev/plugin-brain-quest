@@ -1,6 +1,9 @@
 {
   "name": "@obieg-zero/plugin-brain-quest",
-  "version": "0.2.1",
-  "description": "Nauka z grafem umiejętności — odkrywaj terminy jak w RPG",
-  "private": true
+  "version": "0.3.0",
+  "description": "Nauka z grafem umiejętności — odkrywaj terminy jak w RPG (renderer: @obieg-zero/cosmos-graph)",
+  "private": true,
+  "dependencies": {
+    "@obieg-zero/cosmos-graph": "*"
+  }
 }

@@ -1,5 +1,5 @@
 import type { PluginFactory, PostRecord } from '@obieg-zero/sdk'
-import { KnowledgeGraph, type GraphNode, type GraphEdge, type GraphContextEdge, type BranchDef, type RelTypeDef } from '@obieg-zero/bq-graph'
+import { CosmosGraph, type CosmosNode, type CosmosEdge, type CosmosContextEdge, type CosmosBranch, type CosmosRelType } from '@obieg-zero/cosmos-graph'
 
 const GH_API = 'https://api.github.com'
 const GH_RAW = 'https://raw.githubusercontent.com'
@@ -152,33 +152,32 @@ const plugin: PluginFactory = ({ React, ui, store, sdk, icons }) => {
     const terms = store.useChildren(treeId || '', 'lexicon') as PostRecord[]
     const { nidMap } = useLexMaps()
 
-    const graphNodes = useMemo<GraphNode[]>(() => nodes.map(n => ({
-      id: n.id,
+    const cosmosNodes = useMemo<CosmosNode[]>(() => nodes.map(n => ({
       nid: String(n.data.nodeId),
-      tier: Number(n.data.tier) || 0,
-      branch: String(n.data.branch || ''),
       title: String(n.data.title),
+      branch: String(n.data.branch || ''),
+      tier: Number(n.data.tier) || 0,
     })), [nodes])
 
-    const graphEdges = useMemo<GraphEdge[]>(() =>
+    const cosmosEdges = useMemo<CosmosEdge[]>(() =>
       edgeRecords.map(e => ({ from: String(e.data.fromNid), to: String(e.data.toNid) })),
       [edgeRecords]
     )
 
-    const graphBranches = useMemo<BranchDef[]>(() => branchRecords.map(b => ({
+    const cosmosBranches = useMemo<CosmosBranch[]>(() => branchRecords.map(b => ({
       key: String(b.data.key),
       label: String(b.data.label),
       color: String(b.data.color || 'neutral'),
     })), [branchRecords])
 
-    const graphRelTypes = useMemo<RelTypeDef[]>(() => relTypeRecords.map(r => ({
+    const cosmosRelTypes = useMemo<CosmosRelType[]>(() => relTypeRecords.map(r => ({
       key: String(r.data.key),
       label: String(r.data.label),
       color: String(r.data.color || 'neutral'),
     })), [relTypeRecords])
 
     // Krawędzie kontekstowe — tylko z ODKRYTYCH terminów (gating reader-mode)
-    const graphContextEdges = useMemo<GraphContextEdge[]>(() => {
+    const cosmosContextEdges = useMemo<CosmosContextEdge[]>(() => {
       const discoveredTermIds = new Set(discoveries.map(d => String(d.data.termId)))
       if (!discoveredTermIds.size) return []
       const map = new Map<string, { from: string; to: string; rels: Map<string, number> }>()
@@ -196,11 +195,11 @@ const plugin: PluginFactory = ({ React, ui, store, sdk, icons }) => {
             entry.rels.set(rel, (entry.rels.get(rel) || 0) + 1)
           }
       }
-      const out: GraphContextEdge[] = []
+      const out: CosmosContextEdge[] = []
       for (const { from, to, rels } of map.values()) {
         let best = 'inne', bestCount = 0, total = 0
         for (const [r, c] of rels) { total += c; if (c > bestCount) { best = r; bestCount = c } }
-        out.push({ from, to, relation: best, count: total, strength: Math.min(0.4 + total * 0.15, 0.9) })
+        out.push({ from, to, relation: best, count: total })
       }
       return out
     }, [discoveries, terms, nidMap])
@@ -231,18 +230,28 @@ const plugin: PluginFactory = ({ React, ui, store, sdk, icons }) => {
     if (!treeId) return <ui.Placeholder text="Wybierz drzewo z listy" />
     if (!nodes.length) return <ui.Placeholder text="Zaimportuj paczkę bazową" />
 
+    // CosmosGraph operuje na nid (logiczny id). Plugin trzyma `sel` jako post id.
+    const selectedNid = useMemo(() => {
+      if (!sel) return null
+      const post = nodes.find(n => n.id === sel)
+      return post ? String(post.data.nodeId) : null
+    }, [sel, nodes])
+
     return (
-      <KnowledgeGraph
-        nodes={graphNodes}
-        edges={graphEdges}
-        contextEdges={graphContextEdges}
-        branches={graphBranches}
-        relTypes={graphRelTypes}
-        selectedId={sel}
-        onSelectNode={n => {
-          useNav.setState({ sel: n.id, phase: 'detail' })
-          sdk.shared.setState({ bq: { treeId, nodeId: n.nid, postId: n.id } })
+      <CosmosGraph
+        nodes={cosmosNodes}
+        edges={cosmosEdges}
+        contextEdges={cosmosContextEdges}
+        branches={cosmosBranches}
+        relTypes={cosmosRelTypes}
+        selectedNid={selectedNid}
+        onSelectNode={(nid) => {
+          const post = nodes.find(n => String(n.data.nodeId) === nid)
+          if (!post) return
+          useNav.setState({ sel: post.id, phase: 'detail' })
+          sdk.shared.setState({ bq: { treeId, nodeId: nid, postId: post.id } })
         }}
+        onDeselect={() => useNav.setState({ sel: null })}
         progress={{ hits, flashPairs: discoveredPairs, nextNid }}
         bigBranches={['epoki']}
       />

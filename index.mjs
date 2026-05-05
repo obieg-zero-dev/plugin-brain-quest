@@ -1,32 +1,5 @@
 import { jsx, Fragment, jsxs } from "react/jsx-runtime";
-import { useState, useEffect, useMemo, useRef, useCallback } from "react";
-function forceCenter(x2, y2) {
-  var nodes, strength = 1;
-  if (x2 == null) x2 = 0;
-  if (y2 == null) y2 = 0;
-  function force() {
-    var i, n = nodes.length, node, sx = 0, sy = 0;
-    for (i = 0; i < n; ++i) {
-      node = nodes[i], sx += node.x, sy += node.y;
-    }
-    for (sx = (sx / n - x2) * strength, sy = (sy / n - y2) * strength, i = 0; i < n; ++i) {
-      node = nodes[i], node.x -= sx, node.y -= sy;
-    }
-  }
-  force.initialize = function(_) {
-    nodes = _;
-  };
-  force.x = function(_) {
-    return arguments.length ? (x2 = +_, force) : x2;
-  };
-  force.y = function(_) {
-    return arguments.length ? (y2 = +_, force) : y2;
-  };
-  force.strength = function(_) {
-    return arguments.length ? (strength = +_, force) : strength;
-  };
-  return force;
-}
+import { useMemo, useRef, useState, useEffect } from "react";
 function tree_add(d) {
   const x2 = +this._x.call(null, d), y2 = +this._y.call(null, d);
   return add(this.cover(x2, y2), x2, y2, d);
@@ -294,7 +267,7 @@ treeProto.visit = tree_visit;
 treeProto.visitAfter = tree_visitAfter;
 treeProto.x = tree_x;
 treeProto.y = tree_y;
-function constant$4(x2) {
+function constant$3(x2) {
   return function() {
     return x2;
   };
@@ -310,7 +283,7 @@ function y$1(d) {
 }
 function forceCollide(radius) {
   var nodes, radii, random, strength = 1, iterations = 1;
-  if (typeof radius !== "function") radius = constant$4(radius == null ? 1 : +radius);
+  if (typeof radius !== "function") radius = constant$3(radius == null ? 1 : +radius);
   function force() {
     var i, n = nodes.length, tree, node, xi, yi, ri, ri2;
     for (var k = 0; k < iterations; ++k) {
@@ -369,7 +342,7 @@ function forceCollide(radius) {
     return arguments.length ? (strength = +_, force) : strength;
   };
   force.radius = function(_) {
-    return arguments.length ? (radius = typeof _ === "function" ? _ : constant$4(+_), initialize(), force) : radius;
+    return arguments.length ? (radius = typeof _ === "function" ? _ : constant$3(+_), initialize(), force) : radius;
   };
   return force;
 }
@@ -382,7 +355,7 @@ function find$1(nodeById, nodeId) {
   return node;
 }
 function forceLink(links) {
-  var id2 = index, strength = defaultStrength, strengths, distance = constant$4(30), distances, nodes, count, bias, random, iterations = 1;
+  var id2 = index, strength = defaultStrength, strengths, distance = constant$3(30), distances, nodes, count, bias, random, iterations = 1;
   if (links == null) links = [];
   function defaultStrength(link) {
     return 1 / Math.min(count[link.source.index], count[link.target.index]);
@@ -446,10 +419,10 @@ function forceLink(links) {
     return arguments.length ? (iterations = +_, force) : iterations;
   };
   force.strength = function(_) {
-    return arguments.length ? (strength = typeof _ === "function" ? _ : constant$4(+_), initializeStrength(), force) : strength;
+    return arguments.length ? (strength = typeof _ === "function" ? _ : constant$3(+_), initializeStrength(), force) : strength;
   };
   force.distance = function(_) {
-    return arguments.length ? (distance = typeof _ === "function" ? _ : constant$4(+_), initializeDistance(), force) : distance;
+    return arguments.length ? (distance = typeof _ === "function" ? _ : constant$3(+_), initializeDistance(), force) : distance;
   };
   return force;
 }
@@ -733,7 +706,7 @@ function forceSimulation(nodes) {
   };
 }
 function forceManyBody() {
-  var nodes, node, random, alpha, strength = constant$4(-30), strengths, distanceMin2 = 1, distanceMax2 = Infinity, theta2 = 0.81;
+  var nodes, node, random, alpha, strength = constant$3(-30), strengths, distanceMin2 = 1, distanceMax2 = Infinity, theta2 = 0.81;
   function force(_) {
     var i, n = nodes.length, tree = quadtree(nodes, x, y).visitAfter(accumulate);
     for (alpha = _, i = 0; i < n; ++i) node = nodes[i], tree.visit(apply);
@@ -796,7 +769,7 @@ function forceManyBody() {
     initialize();
   };
   force.strength = function(_) {
-    return arguments.length ? (strength = typeof _ === "function" ? _ : constant$4(+_), initialize(), force) : strength;
+    return arguments.length ? (strength = typeof _ === "function" ? _ : constant$3(+_), initialize(), force) : strength;
   };
   force.distanceMin = function(_) {
     return arguments.length ? (distanceMin2 = _ * _, force) : Math.sqrt(distanceMin2);
@@ -810,8 +783,8 @@ function forceManyBody() {
   return force;
 }
 function forceRadial(radius, x2, y2) {
-  var nodes, strength = constant$4(0.1), strengths, radiuses;
-  if (typeof radius !== "function") radius = constant$4(+radius);
+  var nodes, strength = constant$3(0.1), strengths, radiuses;
+  if (typeof radius !== "function") radius = constant$3(+radius);
   if (x2 == null) x2 = 0;
   if (y2 == null) y2 = 0;
   function force(alpha) {
@@ -835,10 +808,10 @@ function forceRadial(radius, x2, y2) {
     nodes = _, initialize();
   };
   force.strength = function(_) {
-    return arguments.length ? (strength = typeof _ === "function" ? _ : constant$4(+_), initialize(), force) : strength;
+    return arguments.length ? (strength = typeof _ === "function" ? _ : constant$3(+_), initialize(), force) : strength;
   };
   force.radius = function(_) {
-    return arguments.length ? (radius = typeof _ === "function" ? _ : constant$4(+_), initialize(), force) : radius;
+    return arguments.length ? (radius = typeof _ === "function" ? _ : constant$3(+_), initialize(), force) : radius;
   };
   force.x = function(_) {
     return arguments.length ? (x2 = +_, force) : x2;
@@ -997,7 +970,7 @@ EnterNode.prototype = {
     return this._parent.querySelectorAll(selector2);
   }
 };
-function constant$3(x2) {
+function constant$2(x2) {
   return function() {
     return x2;
   };
@@ -1052,7 +1025,7 @@ function datum(node) {
 function selection_data(value, key) {
   if (!arguments.length) return Array.from(this, datum);
   var bind = key ? bindKey : bindIndex, parents = this._parents, groups = this._groups;
-  if (typeof value !== "function") value = constant$3(value);
+  if (typeof value !== "function") value = constant$2(value);
   for (var m2 = groups.length, update = new Array(m2), enter = new Array(m2), exit = new Array(m2), j = 0; j < m2; ++j) {
     var parent = parents[j], group = groups[j], groupLength = group.length, data = arraylike(value.call(parent, parent && parent.__data__, j, parents)), dataLength = data.length, enterGroup = enter[j] = new Array(dataLength), updateGroup = update[j] = new Array(dataLength), exitGroup = exit[j] = new Array(groupLength);
     bind(parent, group, enterGroup, updateGroup, exitGroup, data, key);
@@ -1566,11 +1539,7 @@ function pointer(event, node) {
   }
   return [event.pageX, event.pageY];
 }
-const nonpassive = { passive: false };
 const nonpassivecapture = { capture: true, passive: false };
-function nopropagation$1(event) {
-  event.stopImmediatePropagation();
-}
 function noevent$1(event) {
   event.preventDefault();
   event.stopImmediatePropagation();
@@ -1598,180 +1567,6 @@ function yesdrag(view, noclick) {
     root2.style.MozUserSelect = root2.__noselect;
     delete root2.__noselect;
   }
-}
-const constant$2 = (x2) => () => x2;
-function DragEvent(type, {
-  sourceEvent: sourceEvent2,
-  subject,
-  target,
-  identifier,
-  active,
-  x: x2,
-  y: y2,
-  dx,
-  dy,
-  dispatch: dispatch2
-}) {
-  Object.defineProperties(this, {
-    type: { value: type, enumerable: true, configurable: true },
-    sourceEvent: { value: sourceEvent2, enumerable: true, configurable: true },
-    subject: { value: subject, enumerable: true, configurable: true },
-    target: { value: target, enumerable: true, configurable: true },
-    identifier: { value: identifier, enumerable: true, configurable: true },
-    active: { value: active, enumerable: true, configurable: true },
-    x: { value: x2, enumerable: true, configurable: true },
-    y: { value: y2, enumerable: true, configurable: true },
-    dx: { value: dx, enumerable: true, configurable: true },
-    dy: { value: dy, enumerable: true, configurable: true },
-    _: { value: dispatch2 }
-  });
-}
-DragEvent.prototype.on = function() {
-  var value = this._.on.apply(this._, arguments);
-  return value === this._ ? this : value;
-};
-function defaultFilter$1(event) {
-  return !event.ctrlKey && !event.button;
-}
-function defaultContainer() {
-  return this.parentNode;
-}
-function defaultSubject(event, d) {
-  return d == null ? { x: event.x, y: event.y } : d;
-}
-function defaultTouchable$1() {
-  return navigator.maxTouchPoints || "ontouchstart" in this;
-}
-function d3drag() {
-  var filter2 = defaultFilter$1, container = defaultContainer, subject = defaultSubject, touchable = defaultTouchable$1, gestures = {}, listeners = dispatch("start", "drag", "end"), active = 0, mousedownx, mousedowny, mousemoving, touchending, clickDistance2 = 0;
-  function drag(selection2) {
-    selection2.on("mousedown.drag", mousedowned).filter(touchable).on("touchstart.drag", touchstarted).on("touchmove.drag", touchmoved, nonpassive).on("touchend.drag touchcancel.drag", touchended).style("touch-action", "none").style("-webkit-tap-highlight-color", "rgba(0,0,0,0)");
-  }
-  function mousedowned(event, d) {
-    if (touchending || !filter2.call(this, event, d)) return;
-    var gesture = beforestart(this, container.call(this, event, d), event, d, "mouse");
-    if (!gesture) return;
-    select(event.view).on("mousemove.drag", mousemoved, nonpassivecapture).on("mouseup.drag", mouseupped, nonpassivecapture);
-    dragDisable(event.view);
-    nopropagation$1(event);
-    mousemoving = false;
-    mousedownx = event.clientX;
-    mousedowny = event.clientY;
-    gesture("start", event);
-  }
-  function mousemoved(event) {
-    noevent$1(event);
-    if (!mousemoving) {
-      var dx = event.clientX - mousedownx, dy = event.clientY - mousedowny;
-      mousemoving = dx * dx + dy * dy > clickDistance2;
-    }
-    gestures.mouse("drag", event);
-  }
-  function mouseupped(event) {
-    select(event.view).on("mousemove.drag mouseup.drag", null);
-    yesdrag(event.view, mousemoving);
-    noevent$1(event);
-    gestures.mouse("end", event);
-  }
-  function touchstarted(event, d) {
-    if (!filter2.call(this, event, d)) return;
-    var touches = event.changedTouches, c2 = container.call(this, event, d), n = touches.length, i, gesture;
-    for (i = 0; i < n; ++i) {
-      if (gesture = beforestart(this, c2, event, d, touches[i].identifier, touches[i])) {
-        nopropagation$1(event);
-        gesture("start", event, touches[i]);
-      }
-    }
-  }
-  function touchmoved(event) {
-    var touches = event.changedTouches, n = touches.length, i, gesture;
-    for (i = 0; i < n; ++i) {
-      if (gesture = gestures[touches[i].identifier]) {
-        noevent$1(event);
-        gesture("drag", event, touches[i]);
-      }
-    }
-  }
-  function touchended(event) {
-    var touches = event.changedTouches, n = touches.length, i, gesture;
-    if (touchending) clearTimeout(touchending);
-    touchending = setTimeout(function() {
-      touchending = null;
-    }, 500);
-    for (i = 0; i < n; ++i) {
-      if (gesture = gestures[touches[i].identifier]) {
-        nopropagation$1(event);
-        gesture("end", event, touches[i]);
-      }
-    }
-  }
-  function beforestart(that, container2, event, d, identifier, touch) {
-    var dispatch2 = listeners.copy(), p = pointer(touch || event, container2), dx, dy, s;
-    if ((s = subject.call(that, new DragEvent("beforestart", {
-      sourceEvent: event,
-      target: drag,
-      identifier,
-      active,
-      x: p[0],
-      y: p[1],
-      dx: 0,
-      dy: 0,
-      dispatch: dispatch2
-    }), d)) == null) return;
-    dx = s.x - p[0] || 0;
-    dy = s.y - p[1] || 0;
-    return function gesture(type, event2, touch2) {
-      var p0 = p, n;
-      switch (type) {
-        case "start":
-          gestures[identifier] = gesture, n = active++;
-          break;
-        case "end":
-          delete gestures[identifier], --active;
-        // falls through
-        case "drag":
-          p = pointer(touch2 || event2, container2), n = active;
-          break;
-      }
-      dispatch2.call(
-        type,
-        that,
-        new DragEvent(type, {
-          sourceEvent: event2,
-          subject: s,
-          target: drag,
-          identifier,
-          active: n,
-          x: p[0] + dx,
-          y: p[1] + dy,
-          dx: p[0] - p0[0],
-          dy: p[1] - p0[1],
-          dispatch: dispatch2
-        }),
-        d
-      );
-    };
-  }
-  drag.filter = function(_) {
-    return arguments.length ? (filter2 = typeof _ === "function" ? _ : constant$2(!!_), drag) : filter2;
-  };
-  drag.container = function(_) {
-    return arguments.length ? (container = typeof _ === "function" ? _ : constant$2(_), drag) : container;
-  };
-  drag.subject = function(_) {
-    return arguments.length ? (subject = typeof _ === "function" ? _ : constant$2(_), drag) : subject;
-  };
-  drag.touchable = function(_) {
-    return arguments.length ? (touchable = typeof _ === "function" ? _ : constant$2(!!_), drag) : touchable;
-  };
-  drag.on = function() {
-    var value = listeners.on.apply(listeners, arguments);
-    return value === listeners ? drag : value;
-  };
-  drag.clickDistance = function(_) {
-    return arguments.length ? (clickDistance2 = (_ = +_) * _, drag) : Math.sqrt(clickDistance2);
-  };
-  return drag;
 }
 function define(constructor, factory, prototype) {
   constructor.prototype = factory.prototype = prototype;
@@ -3329,57 +3124,526 @@ function d3zoom() {
   };
   return zoom;
 }
-const FALLBACK_REL = { key: "inne", label: "inne", color: "neutral" };
-const DAISY_TOKENS = /* @__PURE__ */ new Set(["primary", "secondary", "accent", "info", "success", "warning", "error", "neutral", "base-100", "base-200", "base-300", "base-content"]);
+const NO_BRANCH = "_none";
+const COSMOS = {
+  star: "#fde68a",
+  bgFrom: "#1a2440",
+  bgTo: "#0a0e1a",
+  label: "#fff",
+  labelStroke: "#0a0e1a",
+  highlight: "#fde68a",
+  edgeLabel: "#cbd5e1",
+  fallback: "#94a3b8",
+  hud: "#cbd5e1",
+  hudBg: "rgba(10,14,26,0.7)"
+};
+const DAISY_TOKENS = /* @__PURE__ */ new Set(["primary", "secondary", "accent", "info", "success", "warning", "error", "neutral"]);
+const PALETTE = ["primary", "accent", "success", "warning", "secondary", "info", "error", "neutral"];
+const SIM = {
+  radial: 0.45,
+  collide: 26,
+  linkDistance: 80,
+  linkStrength: 0.18,
+  charge: -22,
+  alpha: 1,
+  alphaDecay: 0.04,
+  alphaMin: 1e-3,
+  velocityDecay: 0.5
+};
+const ZOOM = { min: 0.5, max: 5, resetMs: 350 };
+const MOON = {
+  size: 7,
+  sizeSelected: 9,
+  rx: 2,
+  ringSize: 11,
+  ringRx: 3,
+  orbitGap: 14,
+  liftOff: 1.5
+};
+const SONAR = {
+  rings: 2,
+  duration: 5,
+  scaleFrom: 1,
+  scaleTo: 2.6,
+  opacityFrom: 0.55,
+  strokeWidth: 2.2
+};
+const LAYOUT = {
+  cx: 300,
+  cy: 300,
+  rMin: 110,
+  // promień najwęższej orbity
+  minArc: 38,
+  // min łuk (px) na węzeł — wymusza większą orbitę gdy gęsto
+  baseStep: 95,
+  // standardowy odstęp między orbitami
+  defaultSize: 10
+  // baseR planety gdy node.size pominięty
+};
 const tok = (name) => {
-  if (!name) return "var(--color-neutral)";
+  if (!name) return COSMOS.fallback;
   if (name.startsWith("#") || name.startsWith("var(") || name.startsWith("rgb")) return name;
   if (DAISY_TOKENS.has(name)) return `var(--color-${name})`;
-  return "var(--color-neutral)";
+  return COSMOS.fallback;
 };
-function KnowledgeGraph(props) {
-  var _a, _b, _c;
-  const gating = !!props.progress;
-  const hits = ((_a = props.progress) == null ? void 0 : _a.hits) ?? {};
-  const flashPairs = ((_b = props.progress) == null ? void 0 : _b.flashPairs) ?? [];
-  const nextNid = ((_c = props.progress) == null ? void 0 : _c.nextNid) ?? null;
-  const [revealed, setRevealed] = useState(() => /* @__PURE__ */ new Set());
-  useEffect(() => {
-    setRevealed(/* @__PURE__ */ new Set());
-  }, [props.nodes.length === 0]);
-  const bigBranchSet = useMemo(() => new Set(props.bigBranches ?? []), [props.bigBranches]);
-  const branchMap = useMemo(() => {
-    const m2 = {};
-    for (const b of props.branches) m2[b.key] = b;
-    return m2;
-  }, [props.branches]);
-  const relMap = useMemo(() => {
-    const m2 = {};
-    for (const r of props.relTypes) m2[r.key] = r;
-    return m2;
-  }, [props.relTypes]);
-  const relDef = (k) => relMap[k] || FALLBACK_REL;
-  const adj = useMemo(() => {
-    const a2 = /* @__PURE__ */ new Map();
-    for (const e of props.edges) {
-      if (!a2.has(e.from)) a2.set(e.from, /* @__PURE__ */ new Set());
-      if (!a2.has(e.to)) a2.set(e.to, /* @__PURE__ */ new Set());
-      a2.get(e.from).add(e.to);
-      a2.get(e.to).add(e.from);
+const darken = (color2, amt = 0.45) => `color-mix(in srgb, ${color2} ${Math.round((1 - amt) * 100)}%, black)`;
+const planetGeom = (baseR, state) => {
+  const r = state === "selected" ? baseR + 4 : baseR;
+  return {
+    r,
+    haloR: r + 8,
+    liftOff: Math.max(2, r * 0.18),
+    moonOrbitR: r + MOON.orbitGap
+  };
+};
+const arrowGeom = (a2, b, targetR) => {
+  const dx = b.x - a2.x, dy = b.y - a2.y;
+  const d = Math.hypot(dx, dy) || 1;
+  const tipX = b.x - dx / d * (targetR + 2);
+  const tipY = b.y - dy / d * (targetR + 2);
+  const ang = Math.atan2(dy, dx);
+  const arrLen = 8, arrWide = 4;
+  const baseX = tipX - arrLen * Math.cos(ang);
+  const baseY = tipY - arrLen * Math.sin(ang);
+  const w1x = baseX + arrWide * Math.sin(ang);
+  const w1y = baseY - arrWide * Math.cos(ang);
+  const w2x = baseX - arrWide * Math.sin(ang);
+  const w2y = baseY + arrWide * Math.cos(ang);
+  return {
+    path: `M${tipX},${tipY} L${w1x},${w1y} L${w2x},${w2y} Z`,
+    lineEnd: { x: baseX, y: baseY }
+  };
+};
+const branchOf = (n) => n.branch || NO_BRANCH;
+const computeUsedBranches = (nodes, branches) => {
+  const byKey = new Map(branches.map((b) => [b.key, b]));
+  const used = [];
+  const seen = /* @__PURE__ */ new Set();
+  for (const b of branches) {
+    if (!seen.has(b.key) && nodes.some((n) => branchOf(n) === b.key)) {
+      used.push(b.key);
+      seen.add(b.key);
     }
-    return a2;
-  }, [props.edges]);
-  const { visible, frontier, discovered } = useMemo(() => {
+  }
+  if (nodes.some((n) => branchOf(n) === NO_BRANCH)) used.push(NO_BRANCH);
+  return used.map((k, i) => {
+    const def = byKey.get(k);
+    return {
+      key: k,
+      label: def ? def.label : "bez gałęzi",
+      color: (def == null ? void 0 : def.color) ? tok(def.color) : tok(PALETTE[i % PALETTE.length])
+    };
+  });
+};
+const computeLayout = (nodes, branches, edges) => {
+  const countPerKey = /* @__PURE__ */ new Map();
+  for (const n of nodes) {
+    const k = branchOf(n);
+    countPerKey.set(k, (countPerKey.get(k) || 0) + 1);
+  }
+  let prevR = LAYOUT.rMin;
+  const orbits = computeUsedBranches(nodes, branches).map((info, i) => {
+    const cnt = countPerKey.get(info.key) || 1;
+    const required = cnt * LAYOUT.minArc / (2 * Math.PI);
+    const r = Math.max(prevR + (i === 0 ? 0 : LAYOUT.baseStep), required);
+    prevR = r;
+    return { ...info, radius: r };
+  });
+  const initialSimNodes = [];
+  for (const orbit of orbits) {
+    const onOrbit = nodes.filter((n) => branchOf(n) === orbit.key);
+    onOrbit.forEach((n, j) => {
+      const a2 = j / Math.max(onOrbit.length, 1) * Math.PI * 2 - Math.PI / 2;
+      initialSimNodes.push({
+        id: n.nid,
+        x: LAYOUT.cx + Math.cos(a2) * orbit.radius,
+        y: LAYOUT.cy + Math.sin(a2) * orbit.radius,
+        targetR: orbit.radius,
+        color: orbit.color,
+        branch: orbit.key
+      });
+    });
+  }
+  const nidSet = new Set(initialSimNodes.map((n) => n.id));
+  const simLinks = edges.map((e) => ({ source: e.from, target: e.to })).filter((l) => nidSet.has(l.source) && nidSet.has(l.target));
+  return { initialSimNodes, simLinks, orbits };
+};
+const Label = (p) => {
+  const baseSize = p.size ?? 10;
+  const fs = baseSize / p.zoomFactor;
+  const sw = baseSize * 0.18 / p.zoomFactor;
+  return /* @__PURE__ */ jsx(
+    "text",
+    {
+      x: p.x,
+      y: p.y,
+      textAnchor: "middle",
+      fontSize: fs,
+      fill: p.color,
+      opacity: p.opacity ?? 1,
+      style: {
+        pointerEvents: "none",
+        paintOrder: "stroke",
+        letterSpacing: (p.uppercase ? 0.6 : 0.2) / p.zoomFactor,
+        fontWeight: p.weight ?? 500,
+        textTransform: p.uppercase ? "uppercase" : "none"
+      },
+      stroke: COSMOS.labelStroke,
+      strokeWidth: sw,
+      strokeOpacity: 0.7,
+      children: p.text
+    }
+  );
+};
+const Edge = (p) => {
+  const arrow = p.arrow ? arrowGeom(p.a, p.b, p.arrow.targetR) : null;
+  const lineEnd = arrow ? arrow.lineEnd : p.b;
+  return /* @__PURE__ */ jsxs(Fragment, { children: [
+    /* @__PURE__ */ jsx(
+      "line",
+      {
+        x1: p.a.x,
+        y1: p.a.y,
+        x2: lineEnd.x,
+        y2: lineEnd.y,
+        stroke: p.color,
+        strokeOpacity: p.op,
+        strokeWidth: p.sw,
+        strokeLinecap: "round",
+        strokeDasharray: p.dashed ? "4 3" : void 0
+      }
+    ),
+    arrow && /* @__PURE__ */ jsx("path", { d: arrow.path, fill: p.color, opacity: p.op }),
+    p.label && /* @__PURE__ */ jsx(
+      Label,
+      {
+        x: (p.a.x + p.b.x) / 2,
+        y: (p.a.y + p.b.y) / 2 - 4,
+        text: p.label.text,
+        color: p.label.color,
+        size: p.label.size ?? 9,
+        opacity: 0.95,
+        weight: p.label.weight ?? 500,
+        zoomFactor: p.zoomFactor
+      }
+    )
+  ] });
+};
+const Star = (p) => /* @__PURE__ */ jsxs(Fragment, { children: [
+  /* @__PURE__ */ jsx("circle", { cx: p.cx, cy: p.cy, r: p.coreR ?? 6, fill: COSMOS.star }),
+  /* @__PURE__ */ jsx("circle", { cx: p.cx, cy: p.cy, r: p.auraR ?? 14, fill: COSMOS.star, opacity: 0.2 })
+] });
+const Orbit = (p) => /* @__PURE__ */ jsxs(Fragment, { children: [
+  /* @__PURE__ */ jsx(
+    "circle",
+    {
+      cx: p.cx,
+      cy: p.cy,
+      r: p.radius,
+      fill: "none",
+      stroke: p.color,
+      strokeOpacity: 0.35,
+      strokeDasharray: "3 5"
+    }
+  ),
+  /* @__PURE__ */ jsx(
+    Label,
+    {
+      x: p.cx,
+      y: p.cy - p.radius - 6,
+      text: p.label,
+      color: p.color,
+      size: 9,
+      opacity: 0.85,
+      weight: 600,
+      uppercase: true,
+      zoomFactor: p.zoomFactor
+    }
+  )
+] });
+const CastShadow = (p) => {
+  const len = p.length ?? 110;
+  const dx = p.planetX - p.sunX, dy = p.planetY - p.sunY;
+  const d = Math.hypot(dx, dy) || 1;
+  const ux = dx / d, uy = dy / d;
+  const px = -uy, py = ux;
+  const w0 = p.planetR * 0.9;
+  const w1 = p.planetR * 0.45;
+  const x1 = p.planetX + px * w0, y1 = p.planetY + py * w0;
+  const x2 = p.planetX - px * w0, y2 = p.planetY - py * w0;
+  const x3 = p.planetX - px * w1 + ux * len, y3 = p.planetY - py * w1 + uy * len;
+  const x4 = p.planetX + px * w1 + ux * len, y4 = p.planetY + py * w1 + uy * len;
+  const gradId = `cosmos-shadow-${p.id}`;
+  return /* @__PURE__ */ jsxs(Fragment, { children: [
+    /* @__PURE__ */ jsxs(
+      "linearGradient",
+      {
+        id: gradId,
+        gradientUnits: "userSpaceOnUse",
+        x1: p.planetX,
+        y1: p.planetY,
+        x2: p.planetX + ux * len,
+        y2: p.planetY + uy * len,
+        children: [
+          /* @__PURE__ */ jsx("stop", { offset: "0%", stopColor: "#000", stopOpacity: 0.32 }),
+          /* @__PURE__ */ jsx("stop", { offset: "100%", stopColor: "#000", stopOpacity: 0 })
+        ]
+      }
+    ),
+    /* @__PURE__ */ jsx(
+      "polygon",
+      {
+        points: `${x1},${y1} ${x2},${y2} ${x3},${y3} ${x4},${y4}`,
+        fill: `url(#${gradId})`,
+        pointerEvents: "none"
+      }
+    )
+  ] });
+};
+const Sonar = (p) => /* @__PURE__ */ jsx("g", { transform: `translate(${p.x} ${p.y})`, style: { pointerEvents: "none" }, children: Array.from({ length: SONAR.rings }, (_, i) => /* @__PURE__ */ jsx(
+  "circle",
+  {
+    cx: 0,
+    cy: 0,
+    r: p.r,
+    fill: "none",
+    stroke: p.color,
+    strokeWidth: SONAR.strokeWidth,
+    style: {
+      transformBox: "fill-box",
+      transformOrigin: "center",
+      animation: `cosmos-sonar ${SONAR.duration}s ease-out ${(i * SONAR.duration / SONAR.rings).toFixed(2)}s infinite`,
+      opacity: 0
+    }
+  },
+  i
+)) });
+const Planet = (p) => {
+  const { r, haloR, liftOff } = planetGeom(p.baseR, p.state);
+  const isSel = p.state === "selected";
+  const isHl = p.state === "highlighted";
+  const haloColor = isHl ? COSMOS.highlight : p.color;
+  const tierFs = Math.max(7, p.baseR * 0.85) / p.zoomFactor;
+  const isFrontier = !!p.frontier;
+  const baseOpacity = p.dimmed ? 0.25 : isFrontier ? 0.55 : 1;
+  return /* @__PURE__ */ jsxs(
+    "g",
+    {
+      onMouseEnter: p.onMouseEnter,
+      onMouseLeave: p.onMouseLeave,
+      style: { opacity: baseOpacity, transition: "opacity 150ms" },
+      children: [
+        p.isNext && /* @__PURE__ */ jsx(
+          "circle",
+          {
+            cx: p.x,
+            cy: p.y,
+            r: haloR + 2,
+            fill: "none",
+            stroke: COSMOS.highlight,
+            strokeWidth: 1.2,
+            opacity: 0.7,
+            style: {
+              transformBox: "fill-box",
+              transformOrigin: "center",
+              animation: "cosmos-next 2.2s ease-in-out infinite"
+            },
+            pointerEvents: "none"
+          }
+        ),
+        (isSel || isHl) && /* @__PURE__ */ jsx(
+          "circle",
+          {
+            cx: p.x,
+            cy: p.y,
+            r: haloR,
+            fill: haloColor,
+            opacity: 0.3,
+            pointerEvents: "none"
+          }
+        ),
+        /* @__PURE__ */ jsx(
+          "circle",
+          {
+            cx: p.x,
+            cy: p.y + liftOff,
+            r,
+            fill: darken(p.color),
+            pointerEvents: "none"
+          }
+        ),
+        /* @__PURE__ */ jsx(
+          "circle",
+          {
+            cx: p.x,
+            cy: p.y,
+            r,
+            fill: isFrontier ? darken(p.color, 0.6) : p.color,
+            stroke: isSel || isHl ? COSMOS.label : isFrontier ? p.color : "none",
+            strokeWidth: isFrontier ? 1.5 : 2,
+            strokeDasharray: isFrontier ? "3 2" : void 0,
+            style: { cursor: p.onClick ? "pointer" : "default" },
+            onClick: p.onClick ? (e) => {
+              e.stopPropagation();
+              p.onClick();
+            } : void 0
+          }
+        ),
+        isFrontier ? /* @__PURE__ */ jsx(
+          "text",
+          {
+            x: p.x,
+            y: p.y + tierFs * 0.35,
+            textAnchor: "middle",
+            fontSize: tierFs,
+            fill: p.color,
+            fontWeight: 700,
+            opacity: 0.9,
+            pointerEvents: "none",
+            children: "?"
+          }
+        ) : p.tier ? /* @__PURE__ */ jsx(
+          "text",
+          {
+            x: p.x,
+            y: p.y + tierFs * 0.35,
+            textAnchor: "middle",
+            fontSize: tierFs,
+            fill: COSMOS.labelStroke,
+            fontWeight: 700,
+            pointerEvents: "none",
+            children: p.tier
+          }
+        ) : null
+      ]
+    }
+  );
+};
+const FlashEdge = (p) => /* @__PURE__ */ jsx(
+  "line",
+  {
+    x1: p.a.x,
+    y1: p.a.y,
+    x2: p.b.x,
+    y2: p.b.y,
+    stroke: COSMOS.highlight,
+    strokeLinecap: "round",
+    strokeWidth: p.fresh ? 3 : 1.5,
+    style: {
+      animation: p.fresh ? "cosmos-flash 1.4s ease-out 1" : void 0,
+      opacity: p.fresh ? void 0 : 0.45
+    },
+    pointerEvents: "none"
+  }
+);
+const Moon = (p) => {
+  const size = p.selected ? MOON.sizeSelected : MOON.size;
+  const x0 = p.x - size / 2;
+  const y0 = p.y - size / 2;
+  return /* @__PURE__ */ jsxs("g", { children: [
+    p.related && /* @__PURE__ */ jsx(
+      "rect",
+      {
+        x: p.x - MOON.ringSize / 2,
+        y: p.y - MOON.ringSize / 2,
+        width: MOON.ringSize,
+        height: MOON.ringSize,
+        rx: MOON.ringRx,
+        ry: MOON.ringRx,
+        fill: "none",
+        stroke: COSMOS.highlight,
+        strokeOpacity: 0.55,
+        strokeWidth: 1,
+        pointerEvents: "none"
+      }
+    ),
+    /* @__PURE__ */ jsx(
+      "rect",
+      {
+        x: x0,
+        y: y0 + MOON.liftOff,
+        width: size,
+        height: size,
+        rx: MOON.rx,
+        ry: MOON.rx,
+        fill: darken(p.color),
+        pointerEvents: "none"
+      }
+    ),
+    /* @__PURE__ */ jsx(
+      "rect",
+      {
+        x: x0,
+        y: y0,
+        width: size,
+        height: size,
+        rx: MOON.rx,
+        ry: MOON.rx,
+        fill: p.color,
+        stroke: p.selected ? COSMOS.label : "none",
+        strokeWidth: 1,
+        style: { cursor: p.onClick ? "pointer" : "default" },
+        onClick: p.onClick ? (e) => {
+          e.stopPropagation();
+          p.onClick();
+        } : void 0,
+        children: /* @__PURE__ */ jsx("title", { children: p.title })
+      }
+    )
+  ] });
+};
+function CosmosGraph(props) {
+  const {
+    nodes,
+    moons = [],
+    edges = [],
+    contextEdges = [],
+    branches,
+    relTypes = [],
+    selectedNid = null,
+    selectedMoonId = null,
+    highlightedNids,
+    relatedMoonIds,
+    onSelectNode,
+    onSelectMoon,
+    onDeselect,
+    contextBranchPrefix,
+    placeholder,
+    progress,
+    bigBranches = [],
+    rootNid: rootNidProp = null
+  } = props;
+  const cx = LAYOUT.cx, cy = LAYOUT.cy;
+  const gating = !!progress;
+  const hits = (progress == null ? void 0 : progress.hits) ?? {};
+  const flashPairs = (progress == null ? void 0 : progress.flashPairs) ?? [];
+  const nextNid = (progress == null ? void 0 : progress.nextNid) ?? null;
+  const bigBranchSet = useMemo(() => new Set(bigBranches), [bigBranches]);
+  const { visible, frontier } = useMemo(() => {
+    var _a;
     if (!gating) {
-      const all = new Set(props.nodes.map((n) => n.nid));
-      return { visible: all, frontier: /* @__PURE__ */ new Set(), discovered: all };
+      const all = new Set(nodes.map((n) => n.nid));
+      return { visible: all, frontier: /* @__PURE__ */ new Set() };
+    }
+    const adj = /* @__PURE__ */ new Map();
+    for (const e of edges) {
+      if (!adj.has(e.from)) adj.set(e.from, /* @__PURE__ */ new Set());
+      if (!adj.has(e.to)) adj.set(e.to, /* @__PURE__ */ new Set());
+      adj.get(e.from).add(e.to);
+      adj.get(e.to).add(e.from);
     }
     const disc = /* @__PURE__ */ new Set();
-    for (const n of props.nodes) if ((hits[n.nid] || 0) > 0) disc.add(n.nid);
+    for (const n of nodes) if ((hits[n.nid] || 0) > 0) disc.add(n.nid);
     if (!disc.size) {
-      const root2 = [...props.nodes].sort((a2, b) => a2.tier - b.tier)[0];
-      if (root2) return { visible: /* @__PURE__ */ new Set([root2.nid]), frontier: /* @__PURE__ */ new Set([root2.nid]), discovered: disc };
-      return { visible: /* @__PURE__ */ new Set(), frontier: /* @__PURE__ */ new Set(), discovered: disc };
+      const tierOf = (n) => {
+        if (typeof n.tier === "number") return n.tier;
+        const parsed = parseInt(String(n.tier ?? ""), 10);
+        return Number.isFinite(parsed) ? parsed : 0;
+      };
+      const sorted = [...nodes].sort((a2, b) => tierOf(a2) - tierOf(b));
+      const rootId = rootNidProp || ((_a = sorted[0]) == null ? void 0 : _a.nid);
+      if (rootId) return { visible: /* @__PURE__ */ new Set([rootId]), frontier: /* @__PURE__ */ new Set([rootId]) };
+      return { visible: /* @__PURE__ */ new Set(), frontier: /* @__PURE__ */ new Set() };
     }
     const vis = new Set(disc);
     const front = /* @__PURE__ */ new Set();
@@ -3387,262 +3651,396 @@ function KnowledgeGraph(props) {
       vis.add(nb);
       front.add(nb);
     }
-    return { visible: vis, frontier: front, discovered: disc };
-  }, [gating, props.nodes, hits, adj]);
-  const rootNid = useMemo(() => {
-    var _a2;
-    if (props.rootNid) return props.rootNid;
-    const sorted = [...props.nodes].sort((a2, b) => a2.tier - b.tier);
-    return ((_a2 = sorted[0]) == null ? void 0 : _a2.nid) ?? null;
-  }, [props.nodes, props.rootNid]);
-  const visNodes = useMemo(() => props.nodes.filter((n) => visible.has(n.nid)), [props.nodes, visible]);
-  const visEdges = useMemo(() => props.edges.filter((e) => visible.has(e.from) && visible.has(e.to)), [props.edges, visible]);
-  const visCtxEdges = useMemo(() => props.contextEdges.filter((e) => visible.has(e.from) && visible.has(e.to)), [props.contextEdges, visible]);
+    return { visible: vis, frontier: front };
+  }, [gating, nodes, edges, hits, rootNidProp]);
+  const visNodes = useMemo(() => gating ? nodes.filter((n) => visible.has(n.nid)) : nodes, [gating, nodes, visible]);
+  const visEdges = useMemo(() => gating ? edges.filter((e) => visible.has(e.from) && visible.has(e.to)) : edges, [gating, edges, visible]);
+  const visContextEdges = useMemo(() => gating ? contextEdges.filter((e) => visible.has(e.from) && visible.has(e.to)) : contextEdges, [gating, contextEdges, visible]);
+  const visMoons = useMemo(() => gating ? moons.filter((m2) => visible.has(m2.nodeId)) : moons, [gating, moons, visible]);
   const visFlashPairs = useMemo(() => flashPairs.filter((p) => visible.has(p.fromNid) && visible.has(p.toNid)), [flashPairs, visible]);
-  const C = {
-    bg: "var(--color-base-100)",
-    surface: "var(--color-base-200)",
-    edge: "var(--color-base-content)",
-    warn: "var(--color-warning)",
-    primary: "var(--color-primary)",
-    text: "var(--color-base-content)",
-    muted: "var(--color-base-300)"
-  };
+  const { initialSimNodes, simLinks, orbits } = useMemo(
+    () => computeLayout(visNodes, branches, visEdges),
+    [visNodes, branches, visEdges]
+  );
+  const branchColorByNid = useMemo(() => {
+    const orbitColors = new Map(orbits.map((o) => [o.key, o.color]));
+    const m2 = /* @__PURE__ */ new Map();
+    for (const n of visNodes) m2.set(n.nid, orbitColors.get(branchOf(n)) || COSMOS.fallback);
+    return m2;
+  }, [visNodes, orbits]);
+  const baseRByNid = useMemo(() => {
+    const m2 = /* @__PURE__ */ new Map();
+    for (const n of visNodes) m2.set(n.nid, n.size ?? LAYOUT.defaultSize);
+    return m2;
+  }, [visNodes]);
+  const moonsByNid = useMemo(() => {
+    const m2 = /* @__PURE__ */ new Map();
+    for (const moon of visMoons) {
+      if (!m2.has(moon.nodeId)) m2.set(moon.nodeId, []);
+      m2.get(moon.nodeId).push(moon);
+    }
+    return m2;
+  }, [visMoons]);
+  const contextNids = useMemo(() => {
+    const set2 = /* @__PURE__ */ new Set();
+    if (!contextBranchPrefix) return set2;
+    const prefix = contextBranchPrefix.toLowerCase();
+    for (const n of visNodes) {
+      if (n.branch.toLowerCase().startsWith(prefix)) set2.add(n.nid);
+    }
+    return set2;
+  }, [visNodes, contextBranchPrefix]);
+  const relColorByKey = useMemo(() => {
+    const m2 = /* @__PURE__ */ new Map();
+    for (const r of relTypes) m2.set(r.key, { label: r.label, color: tok(r.color) });
+    return m2;
+  }, [relTypes]);
   const svgRef = useRef(null);
   const gRef = useRef(null);
-  const simRef = useRef(null);
-  const simNodesRef = useRef(/* @__PURE__ */ new Map());
   const zoomRef = useRef(null);
-  const simNodes = useMemo(() => {
-    const out = [];
-    const map = simNodesRef.current;
-    for (const n of visNodes) {
-      const nid = n.nid;
-      const branch = n.branch;
-      const tier = n.tier || 0;
-      const existing = map.get(nid);
-      if (existing) {
-        existing.tier = tier;
-        existing.branch = branch;
-        existing.title = n.title;
-        existing.id = n.id;
-        out.push(existing);
-      } else {
-        const angle = Math.random() * Math.PI * 2;
-        const r = tier * 180 + 40;
-        const node = { id: n.id, nid, tier, branch, title: n.title, x: Math.cos(angle) * r, y: Math.sin(angle) * r };
-        map.set(nid, node);
-        out.push(node);
-      }
-    }
-    const visibleNids = new Set(visNodes.map((n) => n.nid));
-    for (const k of map.keys()) if (!visibleNids.has(k)) map.delete(k);
-    return out;
-  }, [visNodes]);
-  const structLinks = useMemo(
-    () => visEdges.filter((e) => simNodesRef.current.has(e.from) && simNodesRef.current.has(e.to)).map((e) => ({ source: e.from, target: e.to, kind: "struct" })),
-    [visEdges]
-  );
-  const contextLinks = useMemo(
-    () => visCtxEdges.filter((ce) => simNodesRef.current.has(ce.from) && simNodesRef.current.has(ce.to)).map((ce) => ({ source: ce.from, target: ce.to, count: ce.count, relation: ce.relation, strength: ce.strength, kind: "context" })),
-    [visCtxEdges]
-  );
-  const flashLinks = useMemo(
-    () => visFlashPairs.filter((p) => simNodesRef.current.has(p.fromNid) && simNodesRef.current.has(p.toNid)).map((p) => ({ source: p.fromNid, target: p.toNid, kind: "flash" })),
-    [visFlashPairs]
-  );
-  const onTick = useCallback(() => {
-    const g = gRef.current;
-    if (!g) return;
-    const nodeEls = g.querySelectorAll(".bq-node");
-    nodeEls.forEach((el) => {
-      const nid = el.dataset.nid;
-      if (!nid) return;
-      const n = simNodesRef.current.get(nid);
-      if (!n) return;
-      el.setAttribute("transform", `translate(${n.x},${n.y})`);
-    });
-    const edgeEls = g.querySelectorAll("path[data-from]");
-    edgeEls.forEach((el) => {
-      const a2 = simNodesRef.current.get(el.dataset.from || "");
-      const b = simNodesRef.current.get(el.dataset.to || "");
-      if (!a2 || !b) return;
-      const mx = (a2.x + b.x) / 2 + (b.y - a2.y) * 0.12;
-      const my = (a2.y + b.y) / 2 - (b.x - a2.x) * 0.12;
-      el.setAttribute("d", `M${a2.x},${a2.y} Q${mx},${my} ${b.x},${b.y}`);
-    });
-    const ctxLabels = g.querySelectorAll("g[data-ctx]");
-    ctxLabels.forEach((el) => {
-      const a2 = simNodesRef.current.get(el.dataset.from || "");
-      const b = simNodesRef.current.get(el.dataset.to || "");
-      if (!a2 || !b) return;
-      el.setAttribute("transform", `translate(${(a2.x + b.x) / 2},${(a2.y + b.y) / 2})`);
-    });
-  }, []);
-  const nidsKey = useMemo(() => simNodes.map((n) => n.nid).sort().join(","), [simNodes]);
+  const simRef = useRef(null);
+  const [zoomK, setZoomK] = useState(1);
+  const [panning, setPanning] = useState(false);
+  const [hovered, setHovered] = useState(null);
+  const [positions, setPositions] = useState(() => {
+    const m2 = /* @__PURE__ */ new Map();
+    for (const n of initialSimNodes) m2.set(n.id, { x: n.x ?? 0, y: n.y ?? 0 });
+    return m2;
+  });
   useEffect(() => {
-    const root2 = simNodes.find((n) => n.nid === rootNid);
-    if (root2) {
-      root2.fx = 0;
-      root2.fy = 0;
-    }
-    const sim = forceSimulation(simNodes).force("link-struct", forceLink(structLinks).id((d) => d.nid).distance(140).strength(0.4)).force("link-context", forceLink(contextLinks).id((d) => d.nid).distance((d) => Math.max(60, 130 - (d.count || 1) * 8)).strength((d) => Math.min(0.15 + (d.count || 1) * 0.12, 0.7))).force("charge", forceManyBody().strength(-450)).force("center", forceCenter(0, 0)).force("radial", forceRadial((d) => d.tier * 170, 0, 0).strength(0.12)).force("collide", forceCollide((d) => bigBranchSet.has(d.branch) ? 95 : 55)).alphaDecay(0.05).alphaMin(0.01).on("tick", onTick);
+    const simNodes = initialSimNodes.map((n) => ({ ...n }));
+    const links = simLinks.map((l) => ({ source: l.source, target: l.target }));
+    const sim = forceSimulation(simNodes).force("radial", forceRadial((d) => d.targetR, cx, cy).strength(SIM.radial)).force("collide", forceCollide(SIM.collide)).force("link", forceLink(links).id((d) => d.id).distance(SIM.linkDistance).strength(SIM.linkStrength)).force("charge", forceManyBody().strength(SIM.charge)).alpha(SIM.alpha).alphaDecay(SIM.alphaDecay).alphaMin(SIM.alphaMin).velocityDecay(SIM.velocityDecay).on("tick", () => {
+      const next = /* @__PURE__ */ new Map();
+      for (const n of simNodes) next.set(n.id, { x: n.x ?? 0, y: n.y ?? 0 });
+      setPositions(next);
+    });
     simRef.current = sim;
     return () => {
       sim.stop();
       simRef.current = null;
     };
-  }, [nidsKey, rootNid]);
-  useEffect(() => {
-    const sim = simRef.current;
-    if (!sim) return;
-    const fStruct = sim.force("link-struct");
-    const fCtx = sim.force("link-context");
-    if (fStruct) fStruct.links(structLinks);
-    if (fCtx) fCtx.links(contextLinks);
-    sim.alpha(0.6).restart();
-  }, [structLinks, contextLinks]);
-  useEffect(() => {
-    var _a2;
-    if (flashLinks.length === 0) return;
-    (_a2 = simRef.current) == null ? void 0 : _a2.alpha(0.8).restart();
-  }, [flashLinks]);
+  }, [initialSimNodes, simLinks, cx, cy]);
   useEffect(() => {
     if (!svgRef.current || !gRef.current) return;
     const svgSel = select(svgRef.current);
     const gSel = select(gRef.current);
-    const z = d3zoom().scaleExtent([0.3, 2.5]).on("zoom", (e) => gSel.attr("transform", e.transform.toString()));
-    svgSel.call(z);
-    const rect = svgRef.current.getBoundingClientRect();
-    svgSel.call(z.transform, identity.translate(rect.width / 2, rect.height / 2).scale(0.8));
-    zoomRef.current = z;
+    const zb = d3zoom().scaleExtent([ZOOM.min, ZOOM.max]).on("start", () => setPanning(true)).on("zoom", (event) => {
+      gSel.attr("transform", event.transform.toString());
+      setZoomK(event.transform.k);
+    }).on("end", () => setPanning(false));
+    svgSel.call(zb);
+    zoomRef.current = zb;
     return () => {
       svgSel.on(".zoom", null);
+      zoomRef.current = null;
     };
   }, []);
-  useEffect(() => {
-    const sel = props.selectedId;
-    if (!sel || !svgRef.current || !zoomRef.current) return;
-    const node = simNodes.find((n) => n.id === sel);
-    if (!node) return;
-    const svgSel = select(svgRef.current);
-    const rect = svgRef.current.getBoundingClientRect();
-    svgSel.transition().duration(600).call(zoomRef.current.transform, identity.translate(rect.width / 2 - node.x * 0.9, rect.height / 2 - node.y * 0.9).scale(0.9));
-  }, [props.selectedId, simNodes]);
-  useEffect(() => {
-    if (!gRef.current) return;
-    const dragBeh = d3drag().clickDistance(5).subject(function() {
-      const nid = this.dataset.nid;
-      return nid ? simNodesRef.current.get(nid) : null;
-    }).on("start", (e) => {
-      var _a2;
-      if (!e.subject) return;
-      if (!e.active) (_a2 = simRef.current) == null ? void 0 : _a2.alphaTarget(0.3).restart();
-      e.subject.fx = e.subject.x;
-      e.subject.fy = e.subject.y;
-    }).on("drag", (e) => {
-      if (!e.subject) return;
-      e.subject.fx = e.x;
-      e.subject.fy = e.y;
-    }).on("end", (e) => {
-      var _a2;
-      if (!e.subject) return;
-      if (!e.active) (_a2 = simRef.current) == null ? void 0 : _a2.alphaTarget(0);
-      if (e.subject.nid !== rootNid) {
-        e.subject.fx = null;
-        e.subject.fy = null;
+  const reset = () => {
+    if (!svgRef.current || !zoomRef.current) return;
+    select(svgRef.current).transition().duration(ZOOM.resetMs).call(zoomRef.current.transform, identity);
+  };
+  const setHoverIfIdle = (nid) => {
+    if (panning) return;
+    setHovered((prev) => prev === nid ? prev : nid);
+  };
+  const focusNid = selectedNid;
+  const neighborSet = useMemo(() => {
+    if (!focusNid) return null;
+    const set2 = /* @__PURE__ */ new Set([focusNid]);
+    for (const e of visEdges) {
+      if (e.from === focusNid) set2.add(e.to);
+      if (e.to === focusNid) set2.add(e.from);
+    }
+    for (const ce of visContextEdges) {
+      if (ce.from === focusNid) set2.add(ce.to);
+      if (ce.to === focusNid) set2.add(ce.from);
+    }
+    return set2;
+  }, [focusNid, visEdges, visContextEdges]);
+  const isNodeDimmed = (nid) => !!neighborSet && !neighborSet.has(nid);
+  const isEdgeFocused = (a2, b) => !!neighborSet && (a2 === focusNid || b === focusNid);
+  const isEdgeRelevant = (a2, b) => !!neighborSet && neighborSet.has(a2) && neighborSet.has(b);
+  const showAllLabels = zoomK >= 1.5;
+  const labelOpacity = (sel, hov) => sel ? 1 : hov ? 0.95 : showAllLabels ? 0.8 : 0;
+  const z = Math.max(zoomK, 0.5);
+  const edgeOpacity = (focused, relevant, idle, focusedOp, relevantOp, dim = 0.02) => !neighborSet ? idle : focused ? focusedOp : relevant ? relevantOp : dim;
+  const orbitsLayer = useMemo(() => /* @__PURE__ */ jsx(Fragment, { children: orbits.map((o) => {
+    const big = bigBranchSet.has(o.key);
+    return /* @__PURE__ */ jsx("g", { style: big ? { strokeWidth: 1.5 } : void 0, children: /* @__PURE__ */ jsx(
+      Orbit,
+      {
+        cx,
+        cy,
+        radius: o.radius,
+        color: o.color,
+        label: o.label,
+        zoomFactor: z
       }
-    });
-    select(gRef.current).selectAll(".bq-node").call(dragBeh);
-  }, [simNodes, rootNid]);
-  const posOf = (nid) => simNodesRef.current.get(nid) || { x: 0, y: 0 };
-  if (!props.nodes.length) return /* @__PURE__ */ jsx(Fragment, { children: props.placeholder ?? null });
-  return /* @__PURE__ */ jsxs("svg", { ref: svgRef, style: { width: "100%", height: "100%", cursor: "grab", userSelect: "none", display: "block", touchAction: "none", background: C.bg }, children: [
-    /* @__PURE__ */ jsxs("defs", { children: [
-      /* @__PURE__ */ jsxs("filter", { id: "bq-glow", children: [
-        /* @__PURE__ */ jsx("feGaussianBlur", { stdDeviation: "4", result: "blur" }),
-        /* @__PURE__ */ jsxs("feMerge", { children: [
-          /* @__PURE__ */ jsx("feMergeNode", { in: "blur" }),
-          /* @__PURE__ */ jsx("feMergeNode", { in: "SourceGraphic" })
-        ] })
-      ] }),
-      /* @__PURE__ */ jsx("filter", { id: "bq-shadow", x: "-50%", y: "-50%", width: "200%", height: "200%", children: /* @__PURE__ */ jsx("feDropShadow", { dx: "0", dy: "3", stdDeviation: "2", floodOpacity: "0.25" }) })
-    ] }),
-    /* @__PURE__ */ jsxs("g", { ref: gRef, children: [
-      visEdges.map((e, i) => /* @__PURE__ */ jsx("path", { "data-from": e.from, "data-to": e.to, d: "", fill: "none", style: { stroke: C.edge }, strokeWidth: 6, strokeLinecap: "round", opacity: 0.1 }, `s${i}`)),
-      visCtxEdges.map((ce, i) => {
-        const rd = relDef(ce.relation);
-        const col = tok(rd.color);
-        const label = `${rd.label}${ce.count > 1 ? ` ·${ce.count}` : ""}`;
-        const lw = label.length * 4.2 + 8;
-        return /* @__PURE__ */ jsxs("g", { children: [
-          /* @__PURE__ */ jsx("path", { "data-from": ce.from, "data-to": ce.to, d: "", fill: "none", style: { stroke: col }, strokeWidth: 3 + Math.min(ce.count, 3), strokeLinecap: "round", opacity: ce.strength * 0.75, filter: "url(#bq-glow)" }),
-          /* @__PURE__ */ jsxs("g", { "data-ctx": true, "data-from": ce.from, "data-to": ce.to, children: [
-            /* @__PURE__ */ jsx("rect", { x: -lw / 2, y: -7, width: lw, height: 12, rx: 6, style: { fill: C.bg, stroke: col }, strokeWidth: 1, opacity: 0.95 }),
-            /* @__PURE__ */ jsx("text", { y: 2, textAnchor: "middle", style: { fill: col, pointerEvents: "none", fontWeight: 600 }, fontSize: 8, children: label })
-          ] })
-        ] }, `ctx-${i}`);
-      }),
-      visFlashPairs.map((pair, i) => /* @__PURE__ */ jsx(
-        "path",
-        {
-          "data-from": pair.fromNid,
-          "data-to": pair.toNid,
-          d: "",
-          fill: "none",
-          style: { stroke: C.warn },
-          strokeWidth: pair.fresh ? 6 : 4,
-          strokeLinecap: "round",
-          opacity: pair.fresh ? 0.9 : 0.55,
-          filter: "url(#bq-glow)",
-          children: pair.fresh && /* @__PURE__ */ jsx("animate", { attributeName: "opacity", values: "1;0.4;1;0.9", dur: "1s", repeatCount: "3", fill: "freeze" })
-        },
-        `dp-${i}`
-      )),
-      visNodes.map((n) => {
-        var _a2;
-        const nid = n.nid, p = posOf(nid);
-        const h = hits[nid] || 0;
-        const s = Math.min(h / 5, 1);
-        const disc = !gating || discovered.has(nid);
-        const front = gating && frontier.has(nid);
-        const mast = gating && s >= 1;
-        const isNext = gating && nid === nextNid && !discovered.has(nid);
-        const isSel = props.selectedId === n.id;
-        const big = bigBranchSet.has(n.branch);
-        const r = (mast ? 42 : disc ? 38 : 34) + (big ? 16 : 0);
-        const bc = tok(((_a2 = branchMap[n.branch]) == null ? void 0 : _a2.color) || "neutral");
-        const fill = disc ? bc : C.surface;
-        const ringCol = disc ? bc : C.muted;
-        const titleVisible = !gating || disc || revealed.has(nid);
-        return /* @__PURE__ */ jsxs("g", { className: "bq-node", "data-nid": nid, transform: `translate(${p.x},${p.y})`, onClick: () => {
-          var _a3;
-          if (gating) setRevealed((prev) => new Set(prev).add(nid));
-          (_a3 = props.onSelectNode) == null ? void 0 : _a3.call(props, n);
-        }, style: { cursor: "pointer" }, children: [
-          isSel && /* @__PURE__ */ jsx("circle", { r: r + 10, fill: "none", style: { stroke: C.primary }, strokeWidth: 3, opacity: 0.7 }),
-          isNext && [0, 0.7, 1.4].map((delay, k) => /* @__PURE__ */ jsxs("circle", { r, fill: "none", style: { stroke: C.primary }, strokeWidth: 7, children: [
-            /* @__PURE__ */ jsx("animate", { attributeName: "r", values: `${r};${r + 34}`, dur: "2.1s", begin: `${delay}s`, repeatCount: "indefinite" }),
-            /* @__PURE__ */ jsx("animate", { attributeName: "opacity", values: "1;0", dur: "2.1s", begin: `${delay}s`, repeatCount: "indefinite" }),
-            /* @__PURE__ */ jsx("animate", { attributeName: "stroke-width", values: "7;1", dur: "2.1s", begin: `${delay}s`, repeatCount: "indefinite" })
-          ] }, `sonar-${k}`)),
-          /* @__PURE__ */ jsx("circle", { cy: 4, r, style: { fill: C.edge }, opacity: 0.15 }),
-          /* @__PURE__ */ jsx("circle", { r, style: { fill, stroke: ringCol }, strokeWidth: disc ? 4 : 3, filter: "url(#bq-shadow)", children: gating && disc && !mast && /* @__PURE__ */ jsx("animate", { attributeName: "r", values: `${r};${r + 3};${r}`, dur: "2s", repeatCount: "1" }) }),
-          mast && /* @__PURE__ */ jsx("circle", { r: r - 6, fill: "none", style: { stroke: C.bg }, strokeWidth: 3, opacity: 0.6 }),
-          gating ? mast ? /* @__PURE__ */ jsx("text", { y: 9, textAnchor: "middle", fontSize: 30, style: { fill: C.bg, fontWeight: 700, pointerEvents: "none" }, children: "★" }) : disc ? /* @__PURE__ */ jsx("text", { y: 7, textAnchor: "middle", fontSize: 20, style: { fill: C.bg, fontWeight: 700, pointerEvents: "none" }, children: h }) : /* @__PURE__ */ jsx("text", { y: 8, textAnchor: "middle", fontSize: 24, style: { fill: C.muted, fontWeight: 700, pointerEvents: "none" }, children: front ? "＋" : "🔒" }) : /* @__PURE__ */ jsx("text", { y: 6, textAnchor: "middle", fontSize: 14, style: { fill: C.bg, fontWeight: 700, pointerEvents: "none" }, children: n.tier ?? "" }),
+    ) }, o.key);
+  }) }), [orbits, cx, cy, z, bigBranchSet]);
+  const edgesLayer = useMemo(() => /* @__PURE__ */ jsx(Fragment, { children: visEdges.map((e, i) => {
+    const a2 = positions.get(e.from), b = positions.get(e.to);
+    if (!a2 || !b) return null;
+    const hasType = !!e.type;
+    const op = edgeOpacity(
+      isEdgeFocused(e.from, e.to),
+      isEdgeRelevant(e.from, e.to),
+      hasType ? 0.6 : 0.15,
+      hasType ? 0.95 : 0.7,
+      hasType ? 0.5 : 0.25
+    );
+    return /* @__PURE__ */ jsx("g", { children: /* @__PURE__ */ jsx(
+      Edge,
+      {
+        a: a2,
+        b,
+        color: branchColorByNid.get(e.to) || COSMOS.fallback,
+        op,
+        sw: hasType ? op > 0.3 ? 2 : 1.5 : op > 0.3 ? 1.5 : 1,
+        dashed: contextNids.has(e.from) || contextNids.has(e.to),
+        arrow: hasType ? { targetR: baseRByNid.get(e.to) || LAYOUT.defaultSize } : void 0,
+        label: e.type && !!neighborSet && isEdgeFocused(e.from, e.to) ? { text: e.type, color: COSMOS.edgeLabel } : void 0,
+        zoomFactor: z
+      }
+    ) }, `e-${i}`);
+  }) }), [visEdges, positions, neighborSet, focusNid, z, contextNids, baseRByNid, branchColorByNid]);
+  const contextLayer = useMemo(() => /* @__PURE__ */ jsx(Fragment, { children: visContextEdges.map((ce, i) => {
+    const a2 = positions.get(ce.from), b = positions.get(ce.to);
+    if (!a2 || !b) return null;
+    const def = relColorByKey.get(ce.relation);
+    const relColor = (def == null ? void 0 : def.color) || COSMOS.fallback;
+    const relLabel = (def == null ? void 0 : def.label) || ce.relation;
+    const strength = Math.min(0.4 + ce.count * 0.15, 0.9);
+    const op = edgeOpacity(
+      isEdgeFocused(ce.from, ce.to),
+      isEdgeRelevant(ce.from, ce.to),
+      ce.count < 2 ? 0 : Math.min(0.12 + strength * 0.15, 0.3),
+      Math.min(0.5 + strength * 0.4, 0.9),
+      0.25
+    );
+    return /* @__PURE__ */ jsx("g", { children: /* @__PURE__ */ jsx(
+      Edge,
+      {
+        a: a2,
+        b,
+        color: relColor,
+        op,
+        sw: 1 + Math.min(ce.count - 1, 2) * 0.4,
+        dashed: contextNids.has(ce.from) || contextNids.has(ce.to),
+        label: !!neighborSet && isEdgeFocused(ce.from, ce.to) ? { text: `${relLabel}${ce.count > 1 ? ` ·${ce.count}` : ""}`, color: relColor, size: 8, weight: 600 } : void 0,
+        zoomFactor: z
+      }
+    ) }, `ctx-${i}`);
+  }) }), [visContextEdges, positions, neighborSet, focusNid, z, contextNids, relColorByKey]);
+  const flashLayer = useMemo(() => {
+    if (!visFlashPairs.length) return null;
+    return /* @__PURE__ */ jsx(Fragment, { children: visFlashPairs.map((fp, i) => {
+      const a2 = positions.get(fp.fromNid), b = positions.get(fp.toNid);
+      if (!a2 || !b) return null;
+      return /* @__PURE__ */ jsx(FlashEdge, { a: a2, b, fresh: fp.fresh }, `fl-${i}-${fp.fromNid}-${fp.toNid}`);
+    }) });
+  }, [visFlashPairs, positions]);
+  const highlightLines = useMemo(() => {
+    if (!selectedMoonId || !highlightedNids) return null;
+    const nids = Array.from(highlightedNids);
+    const lines = [];
+    for (let i = 0; i < nids.length; i++) {
+      for (let j = i + 1; j < nids.length; j++) {
+        const a2 = positions.get(nids[i]);
+        const b = positions.get(nids[j]);
+        if (!a2 || !b) continue;
+        lines.push(
           /* @__PURE__ */ jsx(
-            "text",
+            Edge,
             {
-              y: r + 18,
-              textAnchor: "middle",
-              style: { fill: C.text, fontWeight: disc ? 700 : 500, pointerEvents: "none" },
-              fontSize: 13,
-              opacity: disc ? 1 : revealed.has(nid) ? 0.6 : 0.35,
-              children: titleVisible ? String(n.title).slice(0, 18) : "???"
-            }
+              a: a2,
+              b,
+              color: COSMOS.highlight,
+              op: 0.55,
+              sw: 1.5,
+              zoomFactor: z
+            },
+            `hl-${i}-${j}`
           )
-        ] }, n.id);
+        );
+      }
+    }
+    return /* @__PURE__ */ jsx(Fragment, { children: lines });
+  }, [selectedMoonId, highlightedNids, positions, z]);
+  const shadowsLayer = useMemo(() => /* @__PURE__ */ jsx(Fragment, { children: visNodes.map((n) => {
+    if (frontier.has(n.nid)) return null;
+    const p = positions.get(n.nid);
+    if (!p) return null;
+    return /* @__PURE__ */ jsx(
+      CastShadow,
+      {
+        id: n.nid,
+        sunX: cx,
+        sunY: cy,
+        planetX: p.x,
+        planetY: p.y,
+        planetR: baseRByNid.get(n.nid) || LAYOUT.defaultSize
+      },
+      n.nid
+    );
+  }) }), [visNodes, positions, baseRByNid, cx, cy, frontier]);
+  const sonarLayer = useMemo(() => {
+    if (!selectedNid) return null;
+    const p = positions.get(selectedNid);
+    if (!p) return null;
+    const baseR = baseRByNid.get(selectedNid) || LAYOUT.defaultSize;
+    const { r } = planetGeom(baseR, "selected");
+    const color2 = branchColorByNid.get(selectedNid) || COSMOS.fallback;
+    return /* @__PURE__ */ jsx(Sonar, { x: p.x, y: p.y, r, color: color2 });
+  }, [selectedNid, positions, baseRByNid, branchColorByNid]);
+  const planetsLayer = useMemo(() => /* @__PURE__ */ jsx(Fragment, { children: visNodes.map((n) => {
+    const p = positions.get(n.nid);
+    if (!p) return null;
+    const color2 = branchColorByNid.get(n.nid) || COSMOS.fallback;
+    const isSel = selectedNid === n.nid;
+    const isHl = !!(highlightedNids == null ? void 0 : highlightedNids.has(n.nid));
+    const isFrontier = frontier.has(n.nid) && (hits[n.nid] || 0) === 0;
+    const state = isSel ? "selected" : isHl ? "highlighted" : "idle";
+    const myMoons = isFrontier ? [] : moonsByNid.get(n.nid) || [];
+    const baseR = baseRByNid.get(n.nid) || LAYOUT.defaultSize;
+    const moonOrbitR = planetGeom(baseR, state).moonOrbitR;
+    const isNext = nextNid === n.nid && !isSel;
+    return /* @__PURE__ */ jsxs("g", { children: [
+      /* @__PURE__ */ jsx(
+        Planet,
+        {
+          x: p.x,
+          y: p.y,
+          color: color2,
+          baseR,
+          state,
+          tier: n.tier !== void 0 && n.tier !== "" ? String(n.tier) : void 0,
+          zoomFactor: z,
+          dimmed: isNodeDimmed(n.nid),
+          frontier: isFrontier,
+          isNext,
+          onMouseEnter: () => setHoverIfIdle(n.nid),
+          onMouseLeave: () => setHoverIfIdle(null),
+          onClick: onSelectNode ? () => onSelectNode(n.nid) : void 0
+        }
+      ),
+      myMoons.map((m2, i) => {
+        const ang = i / Math.max(myMoons.length, 1) * Math.PI * 2;
+        return /* @__PURE__ */ jsx(
+          Moon,
+          {
+            x: p.x + Math.cos(ang) * moonOrbitR,
+            y: p.y + Math.sin(ang) * moonOrbitR,
+            color: m2.color,
+            selected: selectedMoonId === m2.id,
+            related: relatedMoonIds == null ? void 0 : relatedMoonIds.has(m2.id),
+            title: m2.title,
+            onClick: onSelectMoon ? () => onSelectMoon(m2.id) : void 0
+          },
+          m2.id
+        );
       })
+    ] }, n.nid);
+  }) }), [visNodes, positions, moonsByNid, baseRByNid, selectedNid, selectedMoonId, relatedMoonIds, highlightedNids, neighborSet, z, branchColorByNid, frontier, hits, nextNid, onSelectNode, onSelectMoon]);
+  const labelsLayer = useMemo(() => /* @__PURE__ */ jsx(Fragment, { children: visNodes.map((n) => {
+    const p = positions.get(n.nid);
+    if (!p) return null;
+    const isFrontier = frontier.has(n.nid) && (hits[n.nid] || 0) === 0;
+    if (isFrontier) return null;
+    const isSel = selectedNid === n.nid;
+    const isHl = !!(highlightedNids == null ? void 0 : highlightedNids.has(n.nid));
+    const isHov = hovered === n.nid;
+    const op = labelOpacity(isSel || isHl, isHov);
+    if (op <= 0) return null;
+    const baseR = baseRByNid.get(n.nid) || LAYOUT.defaultSize;
+    return /* @__PURE__ */ jsx(
+      Label,
+      {
+        x: p.x,
+        y: p.y + baseR + 14,
+        text: n.title,
+        color: COSMOS.label,
+        size: 10,
+        opacity: op,
+        weight: 500,
+        zoomFactor: z
+      },
+      n.nid
+    );
+  }) }), [visNodes, positions, baseRByNid, selectedNid, highlightedNids, hovered, zoomK, frontier, hits]);
+  if (visNodes.length === 0) return /* @__PURE__ */ jsx(Fragment, { children: placeholder ?? null });
+  return /* @__PURE__ */ jsxs("div", { style: { position: "relative", width: "100%", height: "100%" }, children: [
+    /* @__PURE__ */ jsxs(
+      "svg",
+      {
+        ref: svgRef,
+        viewBox: "0 0 600 600",
+        preserveAspectRatio: "xMidYMid meet",
+        style: {
+          display: "block",
+          width: "100%",
+          height: "100%",
+          background: `radial-gradient(ellipse at center, ${COSMOS.bgFrom} 0%, ${COSMOS.bgTo} 100%)`,
+          borderRadius: 8,
+          cursor: panning ? "grabbing" : "grab",
+          userSelect: "none"
+        },
+        onClick: () => onDeselect == null ? void 0 : onDeselect(),
+        children: [
+          /* @__PURE__ */ jsx("defs", { children: /* @__PURE__ */ jsx("style", { children: `
+            @keyframes cosmos-sonar { 0% { transform: scale(${SONAR.scaleFrom}); opacity: ${SONAR.opacityFrom}; } 100% { transform: scale(${SONAR.scaleTo}); opacity: 0; } }
+            @keyframes cosmos-flash { 0% { opacity: 0; stroke-width: 1; } 18% { opacity: 1; stroke-width: 5; } 100% { opacity: 0; stroke-width: 1; } }
+            @keyframes cosmos-next { 0%, 100% { transform: scale(1); opacity: 0.3; } 50% { transform: scale(1.18); opacity: 0.85; } }
+          ` }) }),
+          /* @__PURE__ */ jsxs("g", { ref: gRef, children: [
+            orbitsLayer,
+            /* @__PURE__ */ jsx(Star, { cx, cy }),
+            contextLayer,
+            edgesLayer,
+            flashLayer,
+            highlightLines,
+            shadowsLayer,
+            sonarLayer,
+            planetsLayer,
+            labelsLayer
+          ] })
+        ]
+      }
+    ),
+    /* @__PURE__ */ jsxs("div", { style: {
+      position: "absolute",
+      top: 8,
+      right: 8,
+      background: COSMOS.hudBg,
+      padding: "4px 8px",
+      borderRadius: 6,
+      color: COSMOS.hud,
+      fontSize: 11,
+      display: "flex",
+      alignItems: "center",
+      gap: 8
+    }, children: [
+      /* @__PURE__ */ jsxs("span", { children: [
+        Math.round(zoomK * 100),
+        "%"
+      ] }),
+      /* @__PURE__ */ jsx(
+        "button",
+        {
+          onClick: reset,
+          style: {
+            background: "transparent",
+            border: "1px solid currentColor",
+            color: "inherit",
+            padding: "2px 8px",
+            borderRadius: 4,
+            fontSize: "inherit",
+            cursor: "pointer"
+          },
+          children: "Reset"
+        }
+      )
     ] })
   ] });
 }
@@ -3783,28 +4181,27 @@ const plugin = ({ React, ui, store, sdk, icons }) => {
     const discoveries = store.usePosts("discovery");
     const terms = store.useChildren(treeId || "", "lexicon");
     const { nidMap } = useLexMaps();
-    const graphNodes = useMemo2(() => nodes.map((n) => ({
-      id: n.id,
+    const cosmosNodes = useMemo2(() => nodes.map((n) => ({
       nid: String(n.data.nodeId),
-      tier: Number(n.data.tier) || 0,
+      title: String(n.data.title),
       branch: String(n.data.branch || ""),
-      title: String(n.data.title)
+      tier: Number(n.data.tier) || 0
     })), [nodes]);
-    const graphEdges = useMemo2(
+    const cosmosEdges = useMemo2(
       () => edgeRecords.map((e) => ({ from: String(e.data.fromNid), to: String(e.data.toNid) })),
       [edgeRecords]
     );
-    const graphBranches = useMemo2(() => branchRecords.map((b) => ({
+    const cosmosBranches = useMemo2(() => branchRecords.map((b) => ({
       key: String(b.data.key),
       label: String(b.data.label),
       color: String(b.data.color || "neutral")
     })), [branchRecords]);
-    const graphRelTypes = useMemo2(() => relTypeRecords.map((r) => ({
+    const cosmosRelTypes = useMemo2(() => relTypeRecords.map((r) => ({
       key: String(r.data.key),
       label: String(r.data.label),
       color: String(r.data.color || "neutral")
     })), [relTypeRecords]);
-    const graphContextEdges = useMemo2(() => {
+    const cosmosContextEdges = useMemo2(() => {
       const discoveredTermIds = new Set(discoveries.map((d) => String(d.data.termId)));
       if (!discoveredTermIds.size) return [];
       const map = /* @__PURE__ */ new Map();
@@ -3832,7 +4229,7 @@ const plugin = ({ React, ui, store, sdk, icons }) => {
             bestCount = c2;
           }
         }
-        out.push({ from, to, relation: best, count: total, strength: Math.min(0.4 + total * 0.15, 0.9) });
+        out.push({ from, to, relation: best, count: total });
       }
       return out;
     }, [discoveries, terms, nidMap]);
@@ -3862,19 +4259,27 @@ const plugin = ({ React, ui, store, sdk, icons }) => {
     }, [nodes, terms, nidMap]);
     if (!treeId) return /* @__PURE__ */ jsx(ui.Placeholder, { text: "Wybierz drzewo z listy" });
     if (!nodes.length) return /* @__PURE__ */ jsx(ui.Placeholder, { text: "Zaimportuj paczkę bazową" });
+    const selectedNid = useMemo2(() => {
+      if (!sel) return null;
+      const post = nodes.find((n) => n.id === sel);
+      return post ? String(post.data.nodeId) : null;
+    }, [sel, nodes]);
     return /* @__PURE__ */ jsx(
-      KnowledgeGraph,
+      CosmosGraph,
       {
-        nodes: graphNodes,
-        edges: graphEdges,
-        contextEdges: graphContextEdges,
-        branches: graphBranches,
-        relTypes: graphRelTypes,
-        selectedId: sel,
-        onSelectNode: (n) => {
-          useNav.setState({ sel: n.id, phase: "detail" });
-          sdk.shared.setState({ bq: { treeId, nodeId: n.nid, postId: n.id } });
+        nodes: cosmosNodes,
+        edges: cosmosEdges,
+        contextEdges: cosmosContextEdges,
+        branches: cosmosBranches,
+        relTypes: cosmosRelTypes,
+        selectedNid,
+        onSelectNode: (nid) => {
+          const post = nodes.find((n) => String(n.data.nodeId) === nid);
+          if (!post) return;
+          useNav.setState({ sel: post.id, phase: "detail" });
+          sdk.shared.setState({ bq: { treeId, nodeId: nid, postId: post.id } });
         },
+        onDeselect: () => useNav.setState({ sel: null }),
         progress: { hits, flashPairs: discoveredPairs, nextNid },
         bigBranches: ["epoki"]
       }
