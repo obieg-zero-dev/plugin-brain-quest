@@ -3849,7 +3849,7 @@ function CosmosGraph(props) {
   const showAllLabels = zoomK >= 1.5;
   const labelOpacity = (sel, hov) => sel ? 1 : hov ? 0.95 : showAllLabels ? 0.8 : 0;
   const z = Math.max(zoomK, 0.5);
-  const edgeDim = (focused, relevant, idle, focusedDim, relevantDim, dimmedDim = 0.7) => !neighborSet ? idle : focused ? focusedDim : relevant ? relevantDim : dimmedDim;
+  const edgeDim = (focused, relevant, idle, focusedDim, relevantDim, dimmedDim = 0.8) => !neighborSet ? idle : focused ? focusedDim : relevant ? relevantDim : dimmedDim;
   const orbitsLayer = useMemo(() => /* @__PURE__ */ jsx(Fragment, { children: orbits.map((o) => {
     const big = bigBranchSet.has(o.key);
     return /* @__PURE__ */ jsx("g", { style: big ? { strokeWidth: 1.5 } : void 0, children: /* @__PURE__ */ jsx(
@@ -3871,12 +3871,12 @@ function CosmosGraph(props) {
     const d = edgeDim(
       isEdgeFocused(e.from, e.to),
       isEdgeRelevant(e.from, e.to),
-      hasType ? 0.3 : 0.5,
-      // idle — bump: untyped 50% color (było 25%), typed 70% (było 60%)
+      hasType ? 0.35 : 0.65,
+      // idle — typed 65% color, untyped 35% (subtle tint)
       hasType ? 0.05 : 0.3,
       // focused
-      hasType ? 0.4 : 0.5
-      // relevant — bump (typed 0.5 → 0.4, untyped 0.65 → 0.5)
+      hasType ? 0.45 : 0.55
+      // relevant
     );
     const stronglyVisible = d < 0.6;
     return /* @__PURE__ */ jsx("g", { children: /* @__PURE__ */ jsx(
@@ -3905,12 +3905,12 @@ function CosmosGraph(props) {
     const d = edgeDim(
       isEdgeFocused(ce.from, ce.to),
       isEdgeRelevant(ce.from, ce.to),
-      1 - Math.min(0.3 + strength * 0.25, 0.6),
-      // idle — bumped: max 60% color (było 30%)
+      1 - Math.min(0.2 + strength * 0.2, 0.4),
+      // idle — max 40% color (subtle tint)
       1 - Math.min(0.5 + strength * 0.4, 0.9),
       // focused
-      0.5
-      // relevant — bumped (0.65 → 0.5, 50% color)
+      0.6
+      // relevant — 40% color
     );
     return /* @__PURE__ */ jsx("g", { children: /* @__PURE__ */ jsx(
       Edge,
