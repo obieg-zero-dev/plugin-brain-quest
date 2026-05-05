@@ -1,5 +1,6 @@
 import type { PluginFactory, PostRecord } from '@obieg-zero/sdk'
-import { CosmosGraph, COSMOS_TOKENS, type CosmosNode, type CosmosMoon, type CosmosEdge, type CosmosContextEdge, type CosmosBranch, type CosmosRelType } from '@obieg-zero/cosmos-graph'
+import { CosmosGraph } from '@obieg-zero/cosmos-graph'
+import { useBqGraphData } from '@obieg-zero/bq-cosmos'
 
 const GH_API = 'https://api.github.com'
 const GH_RAW = 'https://raw.githubusercontent.com'
@@ -8,17 +9,6 @@ const plugin: PluginFactory = ({ React, ui, store, sdk, icons }) => {
   const { useState, useMemo, useEffect } = React
   const { Award, X, Zap, BookOpen } = icons
 
-  // Kolory kategorii leksykonu — taka sama paleta jak w plugin-cosmos-bq (BQ-specific).
-  const CAT_COLORS: Record<string, string> = {
-    motyw: '#f59e0b', topos: '#ef4444', gatunek: '#4a90e2',
-    srodek: '#9b59b6', srodek_stylistyczny: '#9b59b6',
-    postac: '#22c55e', pojecie: '#fde68a', 'pojęcie': '#fde68a',
-  }
-  const catColor = (c: string): string => {
-    if (CAT_COLORS[c]) return CAT_COLORS[c]
-    if (!c) return COSMOS_TOKENS.tok(COSMOS_TOKENS.PALETTE[0])
-    return COSMOS_TOKENS.tok(COSMOS_TOKENS.PALETTE[COSMOS_TOKENS.hashStr(c) % COSMOS_TOKENS.PALETTE.length])
-  }
 
   store.registerType('tree', [
     { key: 'title', label: 'Tytuł', required: true },
@@ -136,10 +126,9 @@ const plugin: PluginFactory = ({ React, ui, store, sdk, icons }) => {
   const jparse = <T,>(s: string, fb: T): T => { try { return JSON.parse(s) } catch { return fb } }
 
 
-  // --- skill tree (fog of war) — wrapper nad współdzielonym KnowledgeGraph ---
+  // --- skill tree (fog of war) — wrapper nad współdzielonym CosmosGraph + useBqGraphData ---
   function SkillTree() {
     const { treeId, sel } = useNav()
-    const nodes = store.useChildren(treeId || '', 'node') as PostRecord[]
 
     // Świeżo odkryte połączenia — przychodzi z readera przez sdk.shared.bqFlash
     const flash = sdk.shared((s: any) => s?.bqFlash) as { fromNid?: string; toNid?: string } | null
@@ -157,141 +146,56 @@ const plugin: PluginFactory = ({ React, ui, store, sdk, icons }) => {
       sdk.shared.setState({ bqFlash: null })
     }, [flash])
 
-    const edgeRecords = store.useChildren(treeId || '', 'edge') as PostRecord[]
-    const branchRecords = store.useChildren(treeId || '', 'branch') as PostRecord[]
-    const relTypeRecords = store.useChildren(treeId || '', 'relType') as PostRecord[]
     const discoveries = store.usePosts('discovery') as PostRecord[]
-    const terms = store.useChildren(treeId || '', 'lexicon') as PostRecord[]
-    const allContent = store.usePosts('content') as PostRecord[]
-    const { nidMap } = useLexMaps()
 
-    // Liczba slajdów per węzeł — taki sam mechanizm jak w plugin-cosmos-bq, daje większe planety dla bogatszych węzłów.
-    const slidesByNodeId = useMemo(() => {
-      const m = new Map<string, number>()
-      for (const c of allContent) {
-        if (String(c.data.contentType) === 'quiz') continue
-        m.set(c.parentId, (m.get(c.parentId) || 0) + 1)
-      }
-      return m
-    }, [allContent])
+    // JEDEN adapter dla obu pluginów BQ — z gateByDiscoveries=true (gameplay: tylko odkryte termy).
+    const data = useBqGraphData(store as any, treeId, { gateByDiscoveries: true })
 
-    const cosmosNodes = useMemo<CosmosNode[]>(() => nodes.map(n => ({
-      nid: String(n.data.nodeId),
-      title: String(n.data.title),
-      branch: String(n.data.branch || ''),
-      tier: Number(n.data.tier) || 0,
-      size: COSMOS_TOKENS.planetRadius(slidesByNodeId.get(n.id) || 0),
-    })), [nodes, slidesByNodeId])
-
-    const cosmosEdges = useMemo<CosmosEdge[]>(() =>
-      edgeRecords.map(e => ({ from: String(e.data.fromNid), to: String(e.data.toNid) })),
-      [edgeRecords]
-    )
-
-    const cosmosBranches = useMemo<CosmosBranch[]>(() => branchRecords.map(b => ({
-      key: String(b.data.key),
-      label: String(b.data.label),
-      color: String(b.data.color || 'neutral'),
-    })), [branchRecords])
-
-    const cosmosRelTypes = useMemo<CosmosRelType[]>(() => relTypeRecords.map(r => ({
-      key: String(r.data.key),
-      label: String(r.data.label),
-      color: String(r.data.color || 'neutral'),
-    })), [relTypeRecords])
-
-    // Księżyce — tylko z ODKRYTYCH terminów (gating gameplayu). Każde wystąpienie term→nid daje jeden księżyc.
-    const cosmosMoons = useMemo<CosmosMoon[]>(() => {
-      const discoveredTermIds = new Set(discoveries.map(d => String(d.data.termId)))
-      if (!discoveredTermIds.size) return []
-      const out: CosmosMoon[] = []
-      for (const term of terms) {
-        if (!discoveredTermIds.has(term.id)) continue
-        const nids = nidMap.get(term.id) || []
-        for (const nid of nids) {
-          out.push({
-            nodeId: nid,
-            id: term.id,
-            color: catColor(String(term.data.category || '')),
-            title: `${String(term.data.term)} · ${String(term.data.category || 'inne')}`,
-          })
-        }
-      }
-      return out
-    }, [terms, nidMap, discoveries])
-
-    // Krawędzie kontekstowe — tylko z ODKRYTYCH terminów (gating reader-mode)
-    const cosmosContextEdges = useMemo<CosmosContextEdge[]>(() => {
-      const discoveredTermIds = new Set(discoveries.map(d => String(d.data.termId)))
-      if (!discoveredTermIds.size) return []
-      const map = new Map<string, { from: string; to: string; rels: Map<string, number> }>()
-      for (const term of terms) {
-        if (!discoveredTermIds.has(term.id)) continue
-        const termNodes = nidMap.get(term.id) || []
-        if (termNodes.length < 2) continue
-        const rel = String(term.data.relation || 'inne')
-        for (let i = 0; i < termNodes.length; i++)
-          for (let j = i + 1; j < termNodes.length; j++) {
-            const [a, b] = [termNodes[i], termNodes[j]].sort()
-            const key = `${a}:${b}`
-            if (!map.has(key)) map.set(key, { from: a, to: b, rels: new Map() })
-            const entry = map.get(key)!
-            entry.rels.set(rel, (entry.rels.get(rel) || 0) + 1)
-          }
-      }
-      const out: CosmosContextEdge[] = []
-      for (const { from, to, rels } of map.values()) {
-        let best = 'inne', bestCount = 0, total = 0
-        for (const [r, c] of rels) { total += c; if (c > bestCount) { best = r; bestCount = c } }
-        out.push({ from, to, relation: best, count: total })
-      }
-      return out
-    }, [discoveries, terms, nidMap])
-
+    // Plugin-specific: progress.hits i nextNid (z hits + nidsByLex).
     const hits = useMemo(() => {
       const m: Record<string, number> = {}
-      for (const n of nodes) m[String(n.data.nodeId)] = Number(n.data.hits) || 0
+      for (const n of data.rawNodes) m[String(n.data.nodeId)] = Number(n.data.hits) || 0
       return m
-    }, [nodes])
+    }, [data.rawNodes])
 
     const nextNid = useMemo(() => {
-      const discNodeIds = new Set(nodes.filter(n => Number(n.data.hits) > 0).map(n => String(n.data.nodeId)))
+      const discNodeIds = new Set(data.rawNodes.filter(n => Number(n.data.hits) > 0).map(n => String(n.data.nodeId)))
       if (!discNodeIds.size) {
-        const sorted = [...nodes].sort((a, b) => Number(a.data.tier) - Number(b.data.tier))
+        const sorted = [...data.rawNodes].sort((a, b) => Number(a.data.tier) - Number(b.data.tier))
         return sorted[0] ? String(sorted[0].data.nodeId) : null
       }
       const scores = new Map<string, number>()
-      for (const t of terms) {
-        const tn = nidMap.get(t.id) || []
+      for (const t of data.rawLexicons) {
+        const tn = Array.from(data.nidsByLex.get(t.id) || [])
         if (!tn.some(x => discNodeIds.has(x))) continue
         for (const x of tn) if (!discNodeIds.has(x)) scores.set(x, (scores.get(x) || 0) + 1)
       }
       let best = '', bs = 0
       for (const [k, v] of scores) if (v > bs) { best = k; bs = v }
       return best || null
-    }, [nodes, terms, nidMap])
+    }, [data.rawNodes, data.rawLexicons, data.nidsByLex])
 
     if (!treeId) return <ui.Placeholder text="Wybierz drzewo z listy" />
-    if (!nodes.length) return <ui.Placeholder text="Zaimportuj paczkę bazową" />
+    if (!data.rawNodes.length) return <ui.Placeholder text="Zaimportuj paczkę bazową" />
 
     // CosmosGraph operuje na nid (logiczny id). Plugin trzyma `sel` jako post id.
     const selectedNid = useMemo(() => {
       if (!sel) return null
-      const post = nodes.find(n => n.id === sel)
+      const post = data.rawNodes.find(n => n.id === sel)
       return post ? String(post.data.nodeId) : null
-    }, [sel, nodes])
+    }, [sel, data.rawNodes])
 
     return (
       <CosmosGraph
-        nodes={cosmosNodes}
-        moons={cosmosMoons}
-        edges={cosmosEdges}
-        contextEdges={cosmosContextEdges}
-        branches={cosmosBranches}
-        relTypes={cosmosRelTypes}
+        nodes={data.nodes}
+        moons={data.moons}
+        edges={data.edges}
+        contextEdges={data.contextEdges}
+        branches={data.branches}
+        relTypes={data.relTypes}
         selectedNid={selectedNid}
         onSelectNode={(nid) => {
-          const post = nodes.find(n => String(n.data.nodeId) === nid)
+          const post = data.rawNodes.find(n => String(n.data.nodeId) === nid)
           if (!post) return
           useNav.setState({ sel: post.id, phase: 'detail' })
           sdk.shared.setState({ bq: { treeId, nodeId: nid, postId: post.id } })

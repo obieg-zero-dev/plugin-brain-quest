@@ -4070,26 +4070,163 @@ const COSMOS_TOKENS = {
   darken,
   hashStr
 };
+const CAT_COLORS = {
+  motyw: "#f59e0b",
+  topos: "#ef4444",
+  gatunek: "#4a90e2",
+  srodek: "#9b59b6",
+  srodek_stylistyczny: "#9b59b6",
+  postac: "#22c55e",
+  pojecie: "#fde68a",
+  "pojęcie": "#fde68a"
+};
+const catColor = (c2) => {
+  if (CAT_COLORS[c2]) return CAT_COLORS[c2];
+  if (!c2) return COSMOS_TOKENS.tok(COSMOS_TOKENS.PALETTE[0]);
+  return COSMOS_TOKENS.tok(COSMOS_TOKENS.PALETTE[COSMOS_TOKENS.hashStr(c2) % COSMOS_TOKENS.PALETTE.length]);
+};
+function useBqGraphData(store, treeId, opts = {}) {
+  const tid = treeId || "";
+  const { gateByDiscoveries = false, selectedMoonId = null } = opts;
+  const rawNodes = store.useChildren(tid, "node");
+  const rawEdges = store.useChildren(tid, "edge");
+  const rawBranches = store.useChildren(tid, "branch");
+  const rawRelTypes = store.useChildren(tid, "relType");
+  const rawLexicons = store.useChildren(tid, "lexicon");
+  const rawAllLexNodes = store.usePosts("lexNode");
+  const rawAllContent = store.usePosts("content");
+  const rawDiscoveries = store.usePosts("discovery");
+  const slidesByNodeId = useMemo(() => {
+    const m2 = /* @__PURE__ */ new Map();
+    for (const c2 of rawAllContent) {
+      if (String(c2.data.contentType) === "quiz") continue;
+      m2.set(c2.parentId, (m2.get(c2.parentId) || 0) + 1);
+    }
+    return m2;
+  }, [rawAllContent]);
+  const { lexsByNid, nidsByLex } = useMemo(() => {
+    const lexById = new Map(rawLexicons.map((l) => [l.id, l]));
+    const lexsByNid2 = /* @__PURE__ */ new Map();
+    const nidsByLex2 = /* @__PURE__ */ new Map();
+    for (const ln of rawAllLexNodes) {
+      const lex = lexById.get(ln.parentId);
+      if (!lex) continue;
+      const nid = String(ln.data.nid);
+      if (!lexsByNid2.has(nid)) lexsByNid2.set(nid, []);
+      lexsByNid2.get(nid).push(lex);
+      if (!nidsByLex2.has(lex.id)) nidsByLex2.set(lex.id, /* @__PURE__ */ new Set());
+      nidsByLex2.get(lex.id).add(nid);
+    }
+    return { lexsByNid: lexsByNid2, nidsByLex: nidsByLex2 };
+  }, [rawLexicons, rawAllLexNodes]);
+  const discoveredTermIds = useMemo(() => {
+    if (!gateByDiscoveries) return null;
+    return new Set(rawDiscoveries.map((d) => String(d.data.termId)));
+  }, [gateByDiscoveries, rawDiscoveries]);
+  const nodes = useMemo(() => rawNodes.map((n) => ({
+    nid: String(n.data.nodeId),
+    title: String(n.data.title),
+    branch: String(n.data.branch || ""),
+    tier: String(n.data.tier ?? ""),
+    size: COSMOS_TOKENS.planetRadius(slidesByNodeId.get(n.id) || 0)
+  })), [rawNodes, slidesByNodeId]);
+  const edges = useMemo(() => rawEdges.map((e) => ({
+    from: String(e.data.fromNid),
+    to: String(e.data.toNid),
+    type: e.data.type ? String(e.data.type) : void 0
+  })), [rawEdges]);
+  const branches = useMemo(() => rawBranches.map((b) => ({
+    key: String(b.data.key),
+    label: String(b.data.label),
+    color: String(b.data.color || "neutral")
+  })), [rawBranches]);
+  const relTypes = useMemo(() => rawRelTypes.map((r) => ({
+    key: String(r.data.key),
+    label: String(r.data.label),
+    color: String(r.data.color || "neutral")
+  })), [rawRelTypes]);
+  const moons = useMemo(() => {
+    const out = [];
+    for (const lex of rawLexicons) {
+      if (discoveredTermIds && !discoveredTermIds.has(lex.id)) continue;
+      const nids = nidsByLex.get(lex.id) || /* @__PURE__ */ new Set();
+      for (const nid of nids) {
+        out.push({
+          nodeId: nid,
+          id: lex.id,
+          color: catColor(String(lex.data.category || "")),
+          title: `${String(lex.data.term)} · ${String(lex.data.category || "inne")}`
+        });
+      }
+    }
+    return out;
+  }, [rawLexicons, nidsByLex, discoveredTermIds]);
+  const contextEdges = useMemo(() => {
+    const map = /* @__PURE__ */ new Map();
+    for (const lex of rawLexicons) {
+      if (discoveredTermIds && !discoveredTermIds.has(lex.id)) continue;
+      const nidsArr = Array.from(nidsByLex.get(lex.id) || []);
+      if (nidsArr.length < 2) continue;
+      const rel = String(lex.data.relation || "inne");
+      for (let i = 0; i < nidsArr.length; i++) {
+        for (let j = i + 1; j < nidsArr.length; j++) {
+          const [a2, b] = [nidsArr[i], nidsArr[j]].sort();
+          const key = `${a2}:${b}`;
+          if (!map.has(key)) map.set(key, { from: a2, to: b, rels: /* @__PURE__ */ new Map() });
+          const e = map.get(key);
+          e.rels.set(rel, (e.rels.get(rel) || 0) + 1);
+        }
+      }
+    }
+    const out = [];
+    for (const { from, to, rels } of map.values()) {
+      let best = "inne", bestCount = 0, total = 0;
+      for (const [r, c2] of rels) {
+        total += c2;
+        if (c2 > bestCount) {
+          best = r;
+          bestCount = c2;
+        }
+      }
+      out.push({ from, to, relation: best, count: total });
+    }
+    return out;
+  }, [rawLexicons, nidsByLex, discoveredTermIds]);
+  const highlightedNids = useMemo(() => {
+    if (!selectedMoonId) return void 0;
+    return nidsByLex.get(selectedMoonId) || /* @__PURE__ */ new Set();
+  }, [selectedMoonId, nidsByLex]);
+  const relatedMoonIds = useMemo(() => {
+    if (!selectedMoonId) return void 0;
+    const myNids = nidsByLex.get(selectedMoonId) || /* @__PURE__ */ new Set();
+    const ids = /* @__PURE__ */ new Set();
+    for (const nid of myNids) {
+      const here = lexsByNid.get(nid) || [];
+      for (const l of here) if (l.id !== selectedMoonId) ids.add(l.id);
+    }
+    return ids;
+  }, [selectedMoonId, nidsByLex, lexsByNid]);
+  return {
+    nodes,
+    moons,
+    edges,
+    contextEdges,
+    branches,
+    relTypes,
+    highlightedNids,
+    relatedMoonIds,
+    rawNodes,
+    rawLexicons,
+    rawAllLexNodes,
+    nidsByLex,
+    lexsByNid
+  };
+}
 const GH_API = "https://api.github.com";
 const GH_RAW = "https://raw.githubusercontent.com";
 const plugin = ({ React, ui, store, sdk, icons }) => {
   const { useState: useState2, useMemo: useMemo2, useEffect: useEffect2 } = React;
   const { Award, X, Zap, BookOpen } = icons;
-  const CAT_COLORS = {
-    motyw: "#f59e0b",
-    topos: "#ef4444",
-    gatunek: "#4a90e2",
-    srodek: "#9b59b6",
-    srodek_stylistyczny: "#9b59b6",
-    postac: "#22c55e",
-    pojecie: "#fde68a",
-    "pojęcie": "#fde68a"
-  };
-  const catColor = (c2) => {
-    if (CAT_COLORS[c2]) return CAT_COLORS[c2];
-    if (!c2) return COSMOS_TOKENS.tok(COSMOS_TOKENS.PALETTE[0]);
-    return COSMOS_TOKENS.tok(COSMOS_TOKENS.PALETTE[COSMOS_TOKENS.hashStr(c2) % COSMOS_TOKENS.PALETTE.length]);
-  };
   store.registerType("tree", [
     { key: "title", label: "Tytuł", required: true },
     { key: "repo", label: "Repo" }
@@ -4200,7 +4337,6 @@ const plugin = ({ React, ui, store, sdk, icons }) => {
   };
   function SkillTree() {
     const { treeId, sel } = useNav();
-    const nodes = store.useChildren(treeId || "", "node");
     const flash = sdk.shared((s) => s == null ? void 0 : s.bqFlash);
     const [discoveredPairs, setDiscoveredPairs] = useState2([]);
     useEffect2(() => {
@@ -4216,106 +4352,22 @@ const plugin = ({ React, ui, store, sdk, icons }) => {
       });
       sdk.shared.setState({ bqFlash: null });
     }, [flash]);
-    const edgeRecords = store.useChildren(treeId || "", "edge");
-    const branchRecords = store.useChildren(treeId || "", "branch");
-    const relTypeRecords = store.useChildren(treeId || "", "relType");
-    const discoveries = store.usePosts("discovery");
-    const terms = store.useChildren(treeId || "", "lexicon");
-    const allContent = store.usePosts("content");
-    const { nidMap } = useLexMaps();
-    const slidesByNodeId = useMemo2(() => {
-      const m2 = /* @__PURE__ */ new Map();
-      for (const c2 of allContent) {
-        if (String(c2.data.contentType) === "quiz") continue;
-        m2.set(c2.parentId, (m2.get(c2.parentId) || 0) + 1);
-      }
-      return m2;
-    }, [allContent]);
-    const cosmosNodes = useMemo2(() => nodes.map((n) => ({
-      nid: String(n.data.nodeId),
-      title: String(n.data.title),
-      branch: String(n.data.branch || ""),
-      tier: Number(n.data.tier) || 0,
-      size: COSMOS_TOKENS.planetRadius(slidesByNodeId.get(n.id) || 0)
-    })), [nodes, slidesByNodeId]);
-    const cosmosEdges = useMemo2(
-      () => edgeRecords.map((e) => ({ from: String(e.data.fromNid), to: String(e.data.toNid) })),
-      [edgeRecords]
-    );
-    const cosmosBranches = useMemo2(() => branchRecords.map((b) => ({
-      key: String(b.data.key),
-      label: String(b.data.label),
-      color: String(b.data.color || "neutral")
-    })), [branchRecords]);
-    const cosmosRelTypes = useMemo2(() => relTypeRecords.map((r) => ({
-      key: String(r.data.key),
-      label: String(r.data.label),
-      color: String(r.data.color || "neutral")
-    })), [relTypeRecords]);
-    const cosmosMoons = useMemo2(() => {
-      const discoveredTermIds = new Set(discoveries.map((d) => String(d.data.termId)));
-      if (!discoveredTermIds.size) return [];
-      const out = [];
-      for (const term of terms) {
-        if (!discoveredTermIds.has(term.id)) continue;
-        const nids = nidMap.get(term.id) || [];
-        for (const nid of nids) {
-          out.push({
-            nodeId: nid,
-            id: term.id,
-            color: catColor(String(term.data.category || "")),
-            title: `${String(term.data.term)} · ${String(term.data.category || "inne")}`
-          });
-        }
-      }
-      return out;
-    }, [terms, nidMap, discoveries]);
-    const cosmosContextEdges = useMemo2(() => {
-      const discoveredTermIds = new Set(discoveries.map((d) => String(d.data.termId)));
-      if (!discoveredTermIds.size) return [];
-      const map = /* @__PURE__ */ new Map();
-      for (const term of terms) {
-        if (!discoveredTermIds.has(term.id)) continue;
-        const termNodes = nidMap.get(term.id) || [];
-        if (termNodes.length < 2) continue;
-        const rel = String(term.data.relation || "inne");
-        for (let i = 0; i < termNodes.length; i++)
-          for (let j = i + 1; j < termNodes.length; j++) {
-            const [a2, b] = [termNodes[i], termNodes[j]].sort();
-            const key = `${a2}:${b}`;
-            if (!map.has(key)) map.set(key, { from: a2, to: b, rels: /* @__PURE__ */ new Map() });
-            const entry = map.get(key);
-            entry.rels.set(rel, (entry.rels.get(rel) || 0) + 1);
-          }
-      }
-      const out = [];
-      for (const { from, to, rels } of map.values()) {
-        let best = "inne", bestCount = 0, total = 0;
-        for (const [r, c2] of rels) {
-          total += c2;
-          if (c2 > bestCount) {
-            best = r;
-            bestCount = c2;
-          }
-        }
-        out.push({ from, to, relation: best, count: total });
-      }
-      return out;
-    }, [discoveries, terms, nidMap]);
+    store.usePosts("discovery");
+    const data = useBqGraphData(store, treeId, { gateByDiscoveries: true });
     const hits = useMemo2(() => {
       const m2 = {};
-      for (const n of nodes) m2[String(n.data.nodeId)] = Number(n.data.hits) || 0;
+      for (const n of data.rawNodes) m2[String(n.data.nodeId)] = Number(n.data.hits) || 0;
       return m2;
-    }, [nodes]);
+    }, [data.rawNodes]);
     const nextNid = useMemo2(() => {
-      const discNodeIds = new Set(nodes.filter((n) => Number(n.data.hits) > 0).map((n) => String(n.data.nodeId)));
+      const discNodeIds = new Set(data.rawNodes.filter((n) => Number(n.data.hits) > 0).map((n) => String(n.data.nodeId)));
       if (!discNodeIds.size) {
-        const sorted = [...nodes].sort((a2, b) => Number(a2.data.tier) - Number(b.data.tier));
+        const sorted = [...data.rawNodes].sort((a2, b) => Number(a2.data.tier) - Number(b.data.tier));
         return sorted[0] ? String(sorted[0].data.nodeId) : null;
       }
       const scores = /* @__PURE__ */ new Map();
-      for (const t of terms) {
-        const tn = nidMap.get(t.id) || [];
+      for (const t of data.rawLexicons) {
+        const tn = Array.from(data.nidsByLex.get(t.id) || []);
         if (!tn.some((x2) => discNodeIds.has(x2))) continue;
         for (const x2 of tn) if (!discNodeIds.has(x2)) scores.set(x2, (scores.get(x2) || 0) + 1);
       }
@@ -4325,26 +4377,26 @@ const plugin = ({ React, ui, store, sdk, icons }) => {
         bs = v;
       }
       return best || null;
-    }, [nodes, terms, nidMap]);
+    }, [data.rawNodes, data.rawLexicons, data.nidsByLex]);
     if (!treeId) return /* @__PURE__ */ jsx(ui.Placeholder, { text: "Wybierz drzewo z listy" });
-    if (!nodes.length) return /* @__PURE__ */ jsx(ui.Placeholder, { text: "Zaimportuj paczkę bazową" });
+    if (!data.rawNodes.length) return /* @__PURE__ */ jsx(ui.Placeholder, { text: "Zaimportuj paczkę bazową" });
     const selectedNid = useMemo2(() => {
       if (!sel) return null;
-      const post = nodes.find((n) => n.id === sel);
+      const post = data.rawNodes.find((n) => n.id === sel);
       return post ? String(post.data.nodeId) : null;
-    }, [sel, nodes]);
+    }, [sel, data.rawNodes]);
     return /* @__PURE__ */ jsx(
       CosmosGraph,
       {
-        nodes: cosmosNodes,
-        moons: cosmosMoons,
-        edges: cosmosEdges,
-        contextEdges: cosmosContextEdges,
-        branches: cosmosBranches,
-        relTypes: cosmosRelTypes,
+        nodes: data.nodes,
+        moons: data.moons,
+        edges: data.edges,
+        contextEdges: data.contextEdges,
+        branches: data.branches,
+        relTypes: data.relTypes,
         selectedNid,
         onSelectNode: (nid) => {
-          const post = nodes.find((n) => String(n.data.nodeId) === nid);
+          const post = data.rawNodes.find((n) => String(n.data.nodeId) === nid);
           if (!post) return;
           useNav.setState({ sel: post.id, phase: "detail" });
           sdk.shared.setState({ bq: { treeId, nodeId: nid, postId: post.id } });
