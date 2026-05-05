@@ -3192,6 +3192,7 @@ const tok = (name) => {
   return COSMOS.fallback;
 };
 const darken = (color2, amt = 0.45) => `color-mix(in srgb, ${color2} ${Math.round((1 - amt) * 100)}%, black)`;
+const dim = (color2, amt = 0.7) => `color-mix(in srgb, ${color2} ${Math.round((1 - amt) * 100)}%, ${COSMOS.bgTo})`;
 const hashStr = (s) => {
   let h = 0;
   for (let i = 0; i < s.length; i++) h = h * 31 + s.charCodeAt(i) >>> 0;
@@ -3450,13 +3451,18 @@ const Planet = (p) => {
   const haloColor = isHl ? COSMOS.highlight : p.color;
   const tierFs = Math.max(7, p.baseR * 0.85) / p.zoomFactor;
   const isFrontier = !!p.frontier;
-  const baseOpacity = p.dimmed ? 0.25 : isFrontier ? 0.55 : 1;
+  const dimAmt = p.dimmed ? 0.7 : 0;
+  const bodyColor = isFrontier ? darken(p.color, 0.6) : p.color;
+  const bodyFill = dimAmt ? dim(bodyColor, dimAmt) : bodyColor;
+  const liftFill = dimAmt ? dim(darken(p.color), dimAmt) : darken(p.color);
+  const tierFill = dimAmt ? dim(COSMOS.labelStroke, dimAmt) : COSMOS.labelStroke;
+  const strokeColor = isSel || isHl ? COSMOS.label : isFrontier ? p.color : "none";
   return /* @__PURE__ */ jsxs(
     "g",
     {
       onMouseEnter: p.onMouseEnter,
       onMouseLeave: p.onMouseLeave,
-      style: { opacity: baseOpacity, transition: "opacity 150ms" },
+      style: isFrontier ? { opacity: 0.55, transition: "opacity 150ms" } : { transition: "opacity 150ms" },
       children: [
         p.isNext && /* @__PURE__ */ jsx(
           "circle",
@@ -3493,7 +3499,7 @@ const Planet = (p) => {
             cx: p.x,
             cy: p.y + liftOff,
             r,
-            fill: darken(p.color),
+            fill: liftFill,
             pointerEvents: "none"
           }
         ),
@@ -3503,8 +3509,8 @@ const Planet = (p) => {
             cx: p.x,
             cy: p.y,
             r,
-            fill: isFrontier ? darken(p.color, 0.6) : p.color,
-            stroke: isSel || isHl ? COSMOS.label : isFrontier ? p.color : "none",
+            fill: bodyFill,
+            stroke: strokeColor,
             strokeWidth: isFrontier ? 1.5 : 2,
             strokeDasharray: isFrontier ? "3 2" : void 0,
             style: { cursor: p.onClick ? "pointer" : "default" },
@@ -3534,7 +3540,7 @@ const Planet = (p) => {
             y: p.y + tierFs * 0.35,
             textAnchor: "middle",
             fontSize: tierFs,
-            fill: COSMOS.labelStroke,
+            fill: tierFill,
             fontWeight: 700,
             pointerEvents: "none",
             children: p.tier.slice(0, 3)
@@ -3565,6 +3571,9 @@ const Moon = (p) => {
   const size = p.selected ? MOON.sizeSelected : MOON.size;
   const x0 = p.x - size / 2;
   const y0 = p.y - size / 2;
+  const dimAmt = p.dimmed ? 0.7 : 0;
+  const bodyFill = dimAmt ? dim(p.color, dimAmt) : p.color;
+  const liftFill = dimAmt ? dim(darken(p.color), dimAmt) : darken(p.color);
   return /* @__PURE__ */ jsxs("g", { children: [
     p.related && /* @__PURE__ */ jsx(
       "rect",
@@ -3591,7 +3600,7 @@ const Moon = (p) => {
         height: size,
         rx: MOON.rx,
         ry: MOON.rx,
-        fill: darken(p.color),
+        fill: liftFill,
         pointerEvents: "none"
       }
     ),
@@ -3604,7 +3613,7 @@ const Moon = (p) => {
         height: size,
         rx: MOON.rx,
         ry: MOON.rx,
-        fill: p.color,
+        fill: bodyFill,
         stroke: p.selected ? COSMOS.label : "none",
         strokeWidth: 1,
         style: { cursor: p.onClick ? "pointer" : "default" },
@@ -3808,7 +3817,7 @@ function CosmosGraph(props) {
   const showAllLabels = zoomK >= 1.5;
   const labelOpacity = (sel, hov) => sel ? 1 : hov ? 0.95 : showAllLabels ? 0.8 : 0;
   const z = Math.max(zoomK, 0.5);
-  const edgeOpacity = (focused, relevant, idle, focusedOp, relevantOp, dim = 0.02) => !neighborSet ? idle : focused ? focusedOp : relevant ? relevantOp : dim;
+  const edgeOpacity = (focused, relevant, idle, focusedOp, relevantOp, dim2 = 0.02) => !neighborSet ? idle : focused ? focusedOp : relevant ? relevantOp : dim2;
   const orbitsLayer = useMemo(() => /* @__PURE__ */ jsx(Fragment, { children: orbits.map((o) => {
     const big = bigBranchSet.has(o.key);
     return /* @__PURE__ */ jsx("g", { style: big ? { strokeWidth: 1.5 } : void 0, children: /* @__PURE__ */ jsx(
@@ -3948,6 +3957,7 @@ function CosmosGraph(props) {
     const isSel = selectedNid === n.nid;
     const isHl = !!(highlightedNids == null ? void 0 : highlightedNids.has(n.nid));
     const isFrontier = frontier.has(n.nid) && (hits[n.nid] || 0) === 0;
+    const isDimmed = isNodeDimmed(n.nid);
     const state = isSel ? "selected" : isHl ? "highlighted" : "idle";
     const myMoons = isFrontier ? [] : moonsByNid.get(n.nid) || [];
     const baseR = baseRByNid.get(n.nid) || LAYOUT.defaultSize;
@@ -3964,7 +3974,7 @@ function CosmosGraph(props) {
           state,
           tier: n.tier !== void 0 && n.tier !== "" ? String(n.tier) : void 0,
           zoomFactor: z,
-          dimmed: isNodeDimmed(n.nid),
+          dimmed: isDimmed,
           frontier: isFrontier,
           isNext,
           onMouseEnter: () => setHoverIfIdle(n.nid),
@@ -3982,6 +3992,7 @@ function CosmosGraph(props) {
             color: m2.color,
             selected: selectedMoonId === m2.id,
             related: relatedMoonIds == null ? void 0 : relatedMoonIds.has(m2.id),
+            dimmed: isDimmed,
             title: m2.title,
             onClick: onSelectMoon ? () => onSelectMoon(m2.id) : void 0
           },
