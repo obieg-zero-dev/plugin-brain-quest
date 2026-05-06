@@ -275,10 +275,10 @@ function constant$3(x2) {
 function jiggle(random) {
   return (random() - 0.5) * 1e-6;
 }
-function x$1(d) {
+function x(d) {
   return d.x + d.vx;
 }
-function y$1(d) {
+function y(d) {
   return d.y + d.vy;
 }
 function forceCollide(radius) {
@@ -287,7 +287,7 @@ function forceCollide(radius) {
   function force() {
     var i, n = nodes.length, tree, node, xi, yi, ri, ri2;
     for (var k = 0; k < iterations; ++k) {
-      tree = quadtree(nodes, x$1, y$1).visitAfter(prepare);
+      tree = quadtree(nodes, x, y).visitAfter(prepare);
       for (i = 0; i < n; ++i) {
         node = nodes[i];
         ri = radii[node.index], ri2 = ri * ri;
@@ -343,86 +343,6 @@ function forceCollide(radius) {
   };
   force.radius = function(_) {
     return arguments.length ? (radius = typeof _ === "function" ? _ : constant$3(+_), initialize(), force) : radius;
-  };
-  return force;
-}
-function index(d) {
-  return d.index;
-}
-function find$1(nodeById, nodeId) {
-  var node = nodeById.get(nodeId);
-  if (!node) throw new Error("node not found: " + nodeId);
-  return node;
-}
-function forceLink(links) {
-  var id2 = index, strength = defaultStrength, strengths, distance = constant$3(30), distances, nodes, count, bias, random, iterations = 1;
-  if (links == null) links = [];
-  function defaultStrength(link) {
-    return 1 / Math.min(count[link.source.index], count[link.target.index]);
-  }
-  function force(alpha) {
-    for (var k = 0, n = links.length; k < iterations; ++k) {
-      for (var i = 0, link, source, target, x2, y2, l, b; i < n; ++i) {
-        link = links[i], source = link.source, target = link.target;
-        x2 = target.x + target.vx - source.x - source.vx || jiggle(random);
-        y2 = target.y + target.vy - source.y - source.vy || jiggle(random);
-        l = Math.sqrt(x2 * x2 + y2 * y2);
-        l = (l - distances[i]) / l * alpha * strengths[i];
-        x2 *= l, y2 *= l;
-        target.vx -= x2 * (b = bias[i]);
-        target.vy -= y2 * b;
-        source.vx += x2 * (b = 1 - b);
-        source.vy += y2 * b;
-      }
-    }
-  }
-  function initialize() {
-    if (!nodes) return;
-    var i, n = nodes.length, m2 = links.length, nodeById = new Map(nodes.map((d, i2) => [id2(d, i2, nodes), d])), link;
-    for (i = 0, count = new Array(n); i < m2; ++i) {
-      link = links[i], link.index = i;
-      if (typeof link.source !== "object") link.source = find$1(nodeById, link.source);
-      if (typeof link.target !== "object") link.target = find$1(nodeById, link.target);
-      count[link.source.index] = (count[link.source.index] || 0) + 1;
-      count[link.target.index] = (count[link.target.index] || 0) + 1;
-    }
-    for (i = 0, bias = new Array(m2); i < m2; ++i) {
-      link = links[i], bias[i] = count[link.source.index] / (count[link.source.index] + count[link.target.index]);
-    }
-    strengths = new Array(m2), initializeStrength();
-    distances = new Array(m2), initializeDistance();
-  }
-  function initializeStrength() {
-    if (!nodes) return;
-    for (var i = 0, n = links.length; i < n; ++i) {
-      strengths[i] = +strength(links[i], i, links);
-    }
-  }
-  function initializeDistance() {
-    if (!nodes) return;
-    for (var i = 0, n = links.length; i < n; ++i) {
-      distances[i] = +distance(links[i], i, links);
-    }
-  }
-  force.initialize = function(_nodes, _random) {
-    nodes = _nodes;
-    random = _random;
-    initialize();
-  };
-  force.links = function(_) {
-    return arguments.length ? (links = _, initialize(), force) : links;
-  };
-  force.id = function(_) {
-    return arguments.length ? (id2 = _, force) : id2;
-  };
-  force.iterations = function(_) {
-    return arguments.length ? (iterations = +_, force) : iterations;
-  };
-  force.strength = function(_) {
-    return arguments.length ? (strength = typeof _ === "function" ? _ : constant$3(+_), initializeStrength(), force) : strength;
-  };
-  force.distance = function(_) {
-    return arguments.length ? (distance = typeof _ === "function" ? _ : constant$3(+_), initializeDistance(), force) : distance;
   };
   return force;
 }
@@ -599,12 +519,6 @@ function lcg() {
   let s = 1;
   return () => (s = (a * s + c) % m) / m;
 }
-function x(d) {
-  return d.x;
-}
-function y(d) {
-  return d.y;
-}
 var initialRadius = 10, initialAngle = Math.PI * (3 - Math.sqrt(5));
 function forceSimulation(nodes) {
   var simulation, alpha = 1, alphaMin = 1e-3, alphaDecay = 1 - Math.pow(alphaMin, 1 / 300), alphaTarget = 0, velocityDecay = 0.6, forces = /* @__PURE__ */ new Map(), stepper = timer(step), event = dispatch("tick", "end"), random = lcg();
@@ -704,83 +618,6 @@ function forceSimulation(nodes) {
       return arguments.length > 1 ? (event.on(name, _), simulation) : event.on(name);
     }
   };
-}
-function forceManyBody() {
-  var nodes, node, random, alpha, strength = constant$3(-30), strengths, distanceMin2 = 1, distanceMax2 = Infinity, theta2 = 0.81;
-  function force(_) {
-    var i, n = nodes.length, tree = quadtree(nodes, x, y).visitAfter(accumulate);
-    for (alpha = _, i = 0; i < n; ++i) node = nodes[i], tree.visit(apply);
-  }
-  function initialize() {
-    if (!nodes) return;
-    var i, n = nodes.length, node2;
-    strengths = new Array(n);
-    for (i = 0; i < n; ++i) node2 = nodes[i], strengths[node2.index] = +strength(node2, i, nodes);
-  }
-  function accumulate(quad) {
-    var strength2 = 0, q, c2, weight = 0, x2, y2, i;
-    if (quad.length) {
-      for (x2 = y2 = i = 0; i < 4; ++i) {
-        if ((q = quad[i]) && (c2 = Math.abs(q.value))) {
-          strength2 += q.value, weight += c2, x2 += c2 * q.x, y2 += c2 * q.y;
-        }
-      }
-      quad.x = x2 / weight;
-      quad.y = y2 / weight;
-    } else {
-      q = quad;
-      q.x = q.data.x;
-      q.y = q.data.y;
-      do
-        strength2 += strengths[q.data.index];
-      while (q = q.next);
-    }
-    quad.value = strength2;
-  }
-  function apply(quad, x1, _, x2) {
-    if (!quad.value) return true;
-    var x3 = quad.x - node.x, y2 = quad.y - node.y, w = x2 - x1, l = x3 * x3 + y2 * y2;
-    if (w * w / theta2 < l) {
-      if (l < distanceMax2) {
-        if (x3 === 0) x3 = jiggle(random), l += x3 * x3;
-        if (y2 === 0) y2 = jiggle(random), l += y2 * y2;
-        if (l < distanceMin2) l = Math.sqrt(distanceMin2 * l);
-        node.vx += x3 * quad.value * alpha / l;
-        node.vy += y2 * quad.value * alpha / l;
-      }
-      return true;
-    } else if (quad.length || l >= distanceMax2) return;
-    if (quad.data !== node || quad.next) {
-      if (x3 === 0) x3 = jiggle(random), l += x3 * x3;
-      if (y2 === 0) y2 = jiggle(random), l += y2 * y2;
-      if (l < distanceMin2) l = Math.sqrt(distanceMin2 * l);
-    }
-    do
-      if (quad.data !== node) {
-        w = strengths[quad.data.index] * alpha / l;
-        node.vx += x3 * w;
-        node.vy += y2 * w;
-      }
-    while (quad = quad.next);
-  }
-  force.initialize = function(_nodes, _random) {
-    nodes = _nodes;
-    random = _random;
-    initialize();
-  };
-  force.strength = function(_) {
-    return arguments.length ? (strength = typeof _ === "function" ? _ : constant$3(+_), initialize(), force) : strength;
-  };
-  force.distanceMin = function(_) {
-    return arguments.length ? (distanceMin2 = _ * _, force) : Math.sqrt(distanceMin2);
-  };
-  force.distanceMax = function(_) {
-    return arguments.length ? (distanceMax2 = _ * _, force) : Math.sqrt(distanceMax2);
-  };
-  force.theta = function(_) {
-    return arguments.length ? (theta2 = _ * _, force) : Math.sqrt(theta2);
-  };
-  return force;
 }
 function forceRadial(radius, x2, y2) {
   var nodes, strength = constant$3(0.1), strengths, radiuses;
@@ -2124,13 +1961,13 @@ var STARTED = 3;
 var RUNNING = 4;
 var ENDING = 5;
 var ENDED = 6;
-function schedule(node, name, id2, index2, group, timing) {
+function schedule(node, name, id2, index, group, timing) {
   var schedules = node.__transition;
   if (!schedules) node.__transition = {};
   else if (id2 in schedules) return;
   create(node, id2, {
     name,
-    index: index2,
+    index,
     // For context during callback.
     group,
     // For context during callback.
@@ -3141,14 +2978,7 @@ const DAISY_TOKENS = /* @__PURE__ */ new Set(["primary", "secondary", "accent", 
 const PALETTE = ["primary", "accent", "success", "warning", "secondary", "info", "error", "neutral"];
 const SIM = {
   radial: 0.9,
-  // silne ciąganie do orbity (było 0.45 — za słabe vs linkForce)
   collide: 20,
-  // promień kolizji bliższy faktycznym rozmiarom planet (było 26 — kolidowały na wyrost)
-  linkDistance: 80,
-  linkStrength: 0.04,
-  // bardzo łagodne (było 0.18 — przy 5 dzieciach 5× ciągnęło z orbity)
-  charge: -8,
-  // delikatne odpychanie (było -22 — wypychało planety z orbity)
   alpha: 0.85,
   alphaDecay: 0.07,
   alphaMin: 1e-3,
@@ -3267,7 +3097,7 @@ const computeUsedBranches = (nodes, branches) => {
     };
   });
 };
-const computeLayout = (visibleNodes, allNodes, branches, visibleEdges) => {
+const computeLayout = (visibleNodes, allNodes, branches) => {
   const countPerKeyAll = /* @__PURE__ */ new Map();
   for (const n of allNodes) {
     const k = branchOf(n);
@@ -3309,9 +3139,7 @@ const computeLayout = (visibleNodes, allNodes, branches, visibleEdges) => {
       });
     }
   }
-  const nidSet = new Set(initialSimNodes.map((n) => n.id));
-  const simLinks = visibleEdges.map((e) => ({ source: e.from, target: e.to })).filter((l) => nidSet.has(l.source) && nidSet.has(l.target));
-  return { initialSimNodes, simLinks, orbits };
+  return { initialSimNodes, orbits };
 };
 const Label = (p) => {
   const baseSize = p.size ?? 10;
@@ -3756,9 +3584,9 @@ function CosmosGraph(props) {
   const visContextEdges = useMemo(() => gating ? contextEdges.filter((e) => visible.has(e.from) && visible.has(e.to)) : contextEdges, [gating, contextEdges, visible]);
   const visMoons = useMemo(() => gating ? moons.filter((m2) => visible.has(m2.nodeId)) : moons, [gating, moons, visible]);
   const visFlashPairs = useMemo(() => flashPairs.filter((p) => visible.has(p.fromNid) && visible.has(p.toNid)), [flashPairs, visible]);
-  const { initialSimNodes, simLinks, orbits } = useMemo(
-    () => computeLayout(visNodes, nodes, branches, visEdges),
-    [visNodes, nodes, branches, visEdges]
+  const { initialSimNodes, orbits } = useMemo(
+    () => computeLayout(visNodes, nodes, branches),
+    [visNodes, nodes, branches]
   );
   const branchColorByNid = useMemo(() => {
     const orbitColors = new Map(orbits.map((o) => [o.key, o.color]));
@@ -3800,8 +3628,6 @@ function CosmosGraph(props) {
     for (const n of initialSimNodes) m2.set(n.id, { x: n.x ?? 0, y: n.y ?? 0 });
     return m2;
   });
-  const pendingPositionsRef = useRef(null);
-  const rafIdRef = useRef(null);
   useEffect(() => {
     const persistent = simNodesRef.current;
     const simNodes = initialSimNodes.map((n) => {
@@ -3818,28 +3644,17 @@ function CosmosGraph(props) {
     });
     const visibleIds = new Set(initialSimNodes.map((n) => n.id));
     for (const id2 of Array.from(persistent.keys())) if (!visibleIds.has(id2)) persistent.delete(id2);
-    const links = simLinks.map((l) => ({ source: l.source, target: l.target }));
-    const sim = forceSimulation(simNodes).force("radial", forceRadial((d) => d.targetR, cx, cy).strength(SIM.radial)).force("collide", forceCollide(SIM.collide)).force("link", forceLink(links).id((d) => d.id).distance(SIM.linkDistance).strength(SIM.linkStrength)).force("charge", forceManyBody().strength(SIM.charge)).alpha(SIM.alpha).alphaDecay(SIM.alphaDecay).alphaMin(SIM.alphaMin).velocityDecay(SIM.velocityDecay).on("tick", () => {
-      const latest = /* @__PURE__ */ new Map();
-      for (const n of simNodes) latest.set(n.id, { x: n.x ?? 0, y: n.y ?? 0 });
-      pendingPositionsRef.current = latest;
-      if (rafIdRef.current === null) {
-        rafIdRef.current = requestAnimationFrame(() => {
-          if (pendingPositionsRef.current) setPositions(pendingPositionsRef.current);
-          rafIdRef.current = null;
-        });
-      }
+    const sim = forceSimulation(simNodes).force("radial", forceRadial((d) => d.targetR, cx, cy).strength(SIM.radial)).force("collide", forceCollide(SIM.collide)).alpha(SIM.alpha).alphaDecay(SIM.alphaDecay).alphaMin(SIM.alphaMin).velocityDecay(SIM.velocityDecay).on("tick", () => {
+      const next = /* @__PURE__ */ new Map();
+      for (const n of simNodes) next.set(n.id, { x: n.x ?? 0, y: n.y ?? 0 });
+      setPositions(next);
     });
     simRef.current = sim;
     return () => {
       sim.stop();
       simRef.current = null;
-      if (rafIdRef.current !== null) {
-        cancelAnimationFrame(rafIdRef.current);
-        rafIdRef.current = null;
-      }
     };
-  }, [initialSimNodes, simLinks, cx, cy]);
+  }, [initialSimNodes, cx, cy]);
   useEffect(() => {
     if (!svgRef.current || !gRef.current) return;
     const svgSel = select(svgRef.current);
@@ -3855,9 +3670,6 @@ function CosmosGraph(props) {
       zoomRef.current = null;
     };
   }, []);
-  useEffect(() => {
-    if (selectedNid && simRef.current) simRef.current.alpha(0).stop();
-  }, [selectedNid]);
   useEffect(() => {
     if (quiet) return;
     if (!selectedNid || !svgRef.current || !gRef.current) return;
