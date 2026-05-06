@@ -75,6 +75,7 @@ const plugin: PluginFactory = ({ React, ui, store, sdk, icons }) => {
   const useNav = sdk.create(() => ({
     treeId: null as string | null,
     sel: null as string | null,
+    selMoonId: null as string | null,
     phase: 'map' as 'map' | 'detail',
   }))
 
@@ -92,7 +93,7 @@ const plugin: PluginFactory = ({ React, ui, store, sdk, icons }) => {
 
   // SkillTreeBody: konsument szyny danych. Plugin nie transformuje — adapter dostarcza gotowe.
   function SkillTreeBody({ treeId }: { treeId: string }) {
-    const { sel } = useNav()
+    const { sel, selMoonId } = useNav()
 
     // Świeżo odkryte połączenia — flash z sdk.shared.bqFlash. Plugin-specific subskrypcja, zostaje.
     const flash = sdk.shared((s: any) => s?.bqFlash) as { fromNid?: string; toNid?: string } | undefined
@@ -114,6 +115,7 @@ const plugin: PluginFactory = ({ React, ui, store, sdk, icons }) => {
     const data = useBqGraphData(store, treeId, {
       gateByDiscoveries: true,
       selectedPostId: sel,
+      selectedMoonId: selMoonId,
     })
 
     if (!data.rawNodes.length) return <ui.Placeholder text="Zaimportuj paczkę bazową" />
@@ -127,13 +129,17 @@ const plugin: PluginFactory = ({ React, ui, store, sdk, icons }) => {
         branches={data.branches}
         relTypes={data.relTypes}
         selectedNid={data.selectedNid}
+        selectedMoonId={selMoonId}
+        highlightedNids={data.highlightedNids}
+        relatedMoonIds={data.relatedMoonIds}
         onSelectNode={(nid) => {
           const post = data.rawNodes.find(n => String(n.data.nodeId) === nid)
           if (!post) return
-          useNav.setState({ sel: post.id, phase: 'detail' })
+          useNav.setState({ sel: post.id, selMoonId: null, phase: 'detail' })
           sdk.shared.setState({ bq: { treeId, nodeId: nid, postId: post.id } })
         }}
-        onDeselect={() => useNav.setState({ sel: null })}
+        onSelectMoon={(moonId) => useNav.setState({ selMoonId: selMoonId === moonId ? null : moonId, sel: null })}
+        onDeselect={() => useNav.setState({ sel: null, selMoonId: null })}
         progress={{ hits: data.hits, flashPairs: discoveredPairs, nextNid: data.nextNid }}
         bigBranches={['epoki']}
       />

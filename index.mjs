@@ -4508,6 +4508,7 @@ const plugin = ({ React, ui, store, sdk, icons }) => {
   const useNav = sdk.create(() => ({
     treeId: null,
     sel: null,
+    selMoonId: null,
     phase: "map"
   }));
   const str = (n) => Math.min((Number(n.data.hits) || 0) / 5, 1);
@@ -4524,7 +4525,7 @@ const plugin = ({ React, ui, store, sdk, icons }) => {
     return /* @__PURE__ */ jsx(SkillTreeBody, { treeId });
   }
   function SkillTreeBody({ treeId }) {
-    const { sel } = useNav();
+    const { sel, selMoonId } = useNav();
     const flash = sdk.shared((s) => s == null ? void 0 : s.bqFlash);
     const [discoveredPairs, setDiscoveredPairs] = useState2([]);
     useEffect2(() => {
@@ -4542,7 +4543,8 @@ const plugin = ({ React, ui, store, sdk, icons }) => {
     }, [flash]);
     const data = useBqGraphData(store, treeId, {
       gateByDiscoveries: true,
-      selectedPostId: sel
+      selectedPostId: sel,
+      selectedMoonId: selMoonId
     });
     if (!data.rawNodes.length) return /* @__PURE__ */ jsx(ui.Placeholder, { text: "Zaimportuj paczkę bazową" });
     return /* @__PURE__ */ jsx(
@@ -4555,13 +4557,17 @@ const plugin = ({ React, ui, store, sdk, icons }) => {
         branches: data.branches,
         relTypes: data.relTypes,
         selectedNid: data.selectedNid,
+        selectedMoonId: selMoonId,
+        highlightedNids: data.highlightedNids,
+        relatedMoonIds: data.relatedMoonIds,
         onSelectNode: (nid) => {
           const post = data.rawNodes.find((n) => String(n.data.nodeId) === nid);
           if (!post) return;
-          useNav.setState({ sel: post.id, phase: "detail" });
+          useNav.setState({ sel: post.id, selMoonId: null, phase: "detail" });
           sdk.shared.setState({ bq: { treeId, nodeId: nid, postId: post.id } });
         },
-        onDeselect: () => useNav.setState({ sel: null }),
+        onSelectMoon: (moonId) => useNav.setState({ selMoonId: selMoonId === moonId ? null : moonId, sel: null }),
+        onDeselect: () => useNav.setState({ sel: null, selMoonId: null }),
         progress: { hits: data.hits, flashPairs: discoveredPairs, nextNid: data.nextNid },
         bigBranches: ["epoki"]
       }
