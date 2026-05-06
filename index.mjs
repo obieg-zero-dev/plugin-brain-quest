@@ -3708,7 +3708,8 @@ function CosmosGraph(props) {
     placeholder,
     progress,
     bigBranches = [],
-    rootNid: rootNidProp = null
+    rootNid: rootNidProp = null,
+    quiet = false
   } = props;
   const cx = LAYOUT.cx, cy = LAYOUT.cy;
   const gating = !!progress;
@@ -3855,6 +3856,7 @@ function CosmosGraph(props) {
     };
   }, []);
   useEffect(() => {
+    if (quiet) return;
     if (!selectedNid || !svgRef.current || !gRef.current) return;
     const p = positions.get(selectedNid);
     if (!p) return;
@@ -4051,14 +4053,14 @@ function CosmosGraph(props) {
     );
   }) }), [visNodes, positions, baseRByNid, cx, cy, frontier, instanceId]);
   const sonarLayer = useMemo(() => {
-    if (!selectedNid) return null;
+    if (quiet || !selectedNid) return null;
     const p = positions.get(selectedNid);
     if (!p) return null;
     const baseR = baseRByNid.get(selectedNid) || LAYOUT.defaultSize;
     const { r } = planetGeom(baseR, "selected");
     const color2 = branchColorByNid.get(selectedNid) || COSMOS.fallback;
     return /* @__PURE__ */ jsx(Sonar, { x: p.x, y: p.y, r, color: color2 });
-  }, [selectedNid, positions, baseRByNid, branchColorByNid]);
+  }, [quiet, selectedNid, positions, baseRByNid, branchColorByNid]);
   const setPlatesLayer = useMemo(() => {
     if (!selectedMoonId) return null;
     const plates = [];
