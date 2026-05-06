@@ -3635,13 +3635,12 @@ const Legend = ({ relTypes }) => {
   ] }, r.key)) });
 };
 const Moon = (p) => {
-  const size = p.selected ? MOON.sizeSelected : MOON.size;
   const dimAmt = p.dimmed ? STATE.dimAmt : 0;
   const bodyFill = dimAmt ? dim(p.color, dimAmt) : p.color;
   const liftFill = dimAmt ? dim(darken(p.color), dimAmt) : darken(p.color);
-  const rectTransition = "x 250ms ease-out, y 250ms ease-out, width 250ms ease-out, height 250ms ease-out, fill 350ms ease-out, stroke 250ms ease-out, stroke-opacity 250ms ease-out, stroke-width 250ms ease-out";
+  const ringColor = p.selected ? COSMOS.label : p.related ? COSMOS.highlight : null;
   return /* @__PURE__ */ jsxs("g", { transform: `translate(${p.x} ${p.y})`, children: [
-    p.related && /* @__PURE__ */ jsx(
+    ringColor && /* @__PURE__ */ jsx(
       "rect",
       {
         x: -11 / 2,
@@ -3651,7 +3650,7 @@ const Moon = (p) => {
         rx: MOON.ringRx,
         ry: MOON.ringRx,
         fill: "none",
-        stroke: COSMOS.highlight,
+        stroke: ringColor,
         strokeWidth: 1.5,
         shapeRendering: "optimizeSpeed",
         pointerEvents: "none"
@@ -3660,33 +3659,30 @@ const Moon = (p) => {
     /* @__PURE__ */ jsx(
       "rect",
       {
-        x: -size / 2,
-        y: -size / 2 + MOON.liftOff,
-        width: size,
-        height: size,
+        x: -7 / 2,
+        y: -7 / 2 + MOON.liftOff,
+        width: MOON.size,
+        height: MOON.size,
         rx: MOON.rx,
         ry: MOON.rx,
         fill: liftFill,
-        style: { transition: rectTransition },
+        style: { transition: "fill 350ms ease-out" },
         pointerEvents: "none"
       }
     ),
     /* @__PURE__ */ jsx(
       "rect",
       {
-        x: -size / 2,
-        y: -size / 2,
-        width: size,
-        height: size,
+        x: -7 / 2,
+        y: -7 / 2,
+        width: MOON.size,
+        height: MOON.size,
         rx: MOON.rx,
         ry: MOON.rx,
         fill: bodyFill,
-        stroke: COSMOS.label,
-        strokeOpacity: p.selected ? 0.7 : 0,
-        strokeWidth: p.selected ? 2 : 1,
         style: {
           cursor: p.onClick ? "pointer" : "default",
-          transition: rectTransition
+          transition: "fill 350ms ease-out"
         },
         onClick: p.onClick ? (e) => {
           e.stopPropagation();
