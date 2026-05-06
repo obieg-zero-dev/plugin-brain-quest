@@ -3853,6 +3853,14 @@ function CosmosGraph(props) {
       zoomRef.current = null;
     };
   }, []);
+  useEffect(() => {
+    if (!selectedNid || !svgRef.current || !zoomRef.current) return;
+    const p = positions.get(selectedNid);
+    if (!p) return;
+    const k = 1.8;
+    const t = identity.translate(LAYOUT.cx - p.x * k, LAYOUT.cy - p.y * k).scale(k);
+    select(svgRef.current).transition().duration(500).call(zoomRef.current.transform, t);
+  }, [selectedNid]);
   const reset = () => {
     if (!svgRef.current || !zoomRef.current) return;
     select(svgRef.current).transition().duration(ZOOM.resetMs).call(zoomRef.current.transform, identity);
