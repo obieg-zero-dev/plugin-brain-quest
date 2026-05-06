@@ -3788,6 +3788,7 @@ function CosmosGraph(props) {
   const zoomRef = useRef(null);
   const simRef = useRef(null);
   const simNodesRef = useRef(/* @__PURE__ */ new Map());
+  const isAutoCenteringRef = useRef(false);
   const [zoomK, setZoomK] = useState(1);
   const [panning, setPanning] = useState(false);
   const [hovered, setHovered] = useState(null);
@@ -3842,7 +3843,7 @@ function CosmosGraph(props) {
     if (!svgRef.current || !gRef.current) return;
     const svgSel = select(svgRef.current);
     const gSel = select(gRef.current);
-    const zb = d3zoom().scaleExtent([ZOOM.min, ZOOM.max]).on("start", () => setPanning(true)).on("zoom", (event) => {
+    const zb = d3zoom().scaleExtent([ZOOM.min, ZOOM.max]).filter(() => !isAutoCenteringRef.current).on("start", () => setPanning(true)).on("zoom", (event) => {
       gSel.attr("transform", event.transform.toString());
       setZoomK(event.transform.k);
     }).on("end", () => setPanning(false));
@@ -3858,11 +3859,18 @@ function CosmosGraph(props) {
     const p = positions.get(selectedNid);
     if (!p) return;
     const svg = svgRef.current, g = gRef.current;
+    if (g.style.transition) {
+      const computed = window.getComputedStyle(g).transform;
+      g.style.transition = "none";
+      if (computed !== "none") g.style.transform = computed;
+      void g.getBoundingClientRect();
+    }
     const start2 = svg.__zoom;
     if (!start2) return;
     const k = start2.k;
     const endX = LAYOUT.cx - p.x * k, endY = LAYOUT.cy - p.y * k;
     if (Math.abs(endX - start2.x) < 0.5 && Math.abs(endY - start2.y) < 0.5) return;
+    isAutoCenteringRef.current = true;
     const dur = 500;
     g.style.transformOrigin = "0 0";
     g.style.transition = `transform ${dur}ms cubic-bezier(0.22, 0.61, 0.36, 1)`;
@@ -3873,8 +3881,12 @@ function CosmosGraph(props) {
       g.style.transform = "";
       g.setAttribute("transform", tr.toString());
       svg.__zoom = tr;
+      isAutoCenteringRef.current = false;
     }, dur + 30);
-    return () => window.clearTimeout(cleanup);
+    return () => {
+      window.clearTimeout(cleanup);
+      isAutoCenteringRef.current = false;
+    };
   }, [selectedNid]);
   const reset = () => {
     if (!svgRef.current || !zoomRef.current) return;
