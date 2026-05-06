@@ -3857,9 +3857,10 @@ function CosmosGraph(props) {
     if (!selectedNid || !svgRef.current || !zoomRef.current) return;
     const p = positions.get(selectedNid);
     if (!p) return;
-    const k = 1.8;
+    const currentZoom = select(svgRef.current).property("__zoom");
+    const k = (currentZoom == null ? void 0 : currentZoom.k) ?? 1;
     const t = identity.translate(LAYOUT.cx - p.x * k, LAYOUT.cy - p.y * k).scale(k);
-    select(svgRef.current).transition().duration(500).call(zoomRef.current.transform, t);
+    select(svgRef.current).transition().duration(800).ease((u) => 1 - Math.pow(1 - u, 3)).call(zoomRef.current.transform, t);
   }, [selectedNid]);
   const reset = () => {
     if (!svgRef.current || !zoomRef.current) return;
