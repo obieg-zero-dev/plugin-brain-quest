@@ -3853,6 +3853,30 @@ function CosmosGraph(props) {
       zoomRef.current = null;
     };
   }, []);
+  useEffect(() => {
+    if (!selectedNid || !svgRef.current || !gRef.current) return;
+    const p = positions.get(selectedNid);
+    if (!p) return;
+    const svg = svgRef.current, g = gRef.current;
+    const start2 = svg.__zoom;
+    if (!start2) return;
+    const k = start2.k, startX = start2.x, startY = start2.y;
+    const endX = LAYOUT.cx - p.x * k, endY = LAYOUT.cy - p.y * k;
+    if (Math.abs(endX - startX) < 0.5 && Math.abs(endY - startY) < 0.5) return;
+    const t0 = performance.now(), dur = 600;
+    let raf = 0;
+    const tick = (now2) => {
+      const u = Math.min((now2 - t0) / dur, 1);
+      const x2 = startX + (endX - startX) * u;
+      const y2 = startY + (endY - startY) * u;
+      const tr = identity.translate(x2, y2).scale(k);
+      svg.__zoom = tr;
+      g.setAttribute("transform", tr.toString());
+      if (u < 1) raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [selectedNid]);
   const reset = () => {
     if (!svgRef.current || !zoomRef.current) return;
     select(svgRef.current).transition().duration(ZOOM.resetMs).call(zoomRef.current.transform, identity);
