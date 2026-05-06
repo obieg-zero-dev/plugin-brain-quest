@@ -3170,6 +3170,8 @@ const MOON = {
   size: 7,
   sizeSelected: 9,
   rx: 2,
+  ringSize: 11,
+  ringRx: 3,
   orbitGap: 14,
   liftOff: 1.5
 };
@@ -3637,9 +3639,24 @@ const Moon = (p) => {
   const dimAmt = p.dimmed ? STATE.dimAmt : 0;
   const bodyFill = dimAmt ? dim(p.color, dimAmt) : p.color;
   const liftFill = dimAmt ? dim(darken(p.color), dimAmt) : darken(p.color);
-  const rectTransition = "x 250ms ease-out, y 250ms ease-out, width 250ms ease-out, height 250ms ease-out, fill 350ms ease-out, stroke 250ms ease-out, stroke-opacity 250ms ease-out, stroke-width 250ms ease-out, filter 300ms ease-out";
-  const glowFilter = p.related ? `drop-shadow(0 0 4px ${COSMOS.highlight})` : "drop-shadow(0 0 0 transparent)";
+  const rectTransition = "x 250ms ease-out, y 250ms ease-out, width 250ms ease-out, height 250ms ease-out, fill 350ms ease-out, stroke 250ms ease-out, stroke-opacity 250ms ease-out, stroke-width 250ms ease-out";
   return /* @__PURE__ */ jsxs("g", { transform: `translate(${p.x} ${p.y})`, children: [
+    p.related && /* @__PURE__ */ jsx(
+      "rect",
+      {
+        x: -11 / 2,
+        y: -11 / 2,
+        width: MOON.ringSize,
+        height: MOON.ringSize,
+        rx: MOON.ringRx,
+        ry: MOON.ringRx,
+        fill: "none",
+        stroke: COSMOS.highlight,
+        strokeWidth: 1.5,
+        shapeRendering: "optimizeSpeed",
+        pointerEvents: "none"
+      }
+    ),
     /* @__PURE__ */ jsx(
       "rect",
       {
@@ -3669,8 +3686,7 @@ const Moon = (p) => {
         strokeWidth: p.selected ? 2 : 1,
         style: {
           cursor: p.onClick ? "pointer" : "default",
-          transition: rectTransition,
-          filter: glowFilter
+          transition: rectTransition
         },
         onClick: p.onClick ? (e) => {
           e.stopPropagation();
