@@ -3178,10 +3178,9 @@ const MOON = {
 };
 const SONAR = {
   rings: 2,
-  duration: 8,
+  duration: 6,
   scaleFrom: 1,
-  scaleTo: 18,
-  // ring sięga dalej niż widoczna część grafu — fala "wybiega" za ekran
+  scaleTo: 9,
   opacityFrom: 0.55,
   strokeWidth: 2.2
 };
