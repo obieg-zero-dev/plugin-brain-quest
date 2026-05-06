@@ -3124,7 +3124,6 @@ function d3zoom() {
   };
   return zoom;
 }
-const linearZoomInterpolate = (a2, b) => (t) => new Transform(a2.k + (b.k - a2.k) * t, a2.x + (b.x - a2.x) * t, a2.y + (b.y - a2.y) * t);
 const NO_BRANCH = "_none";
 const COSMOS = {
   star: "#fde68a",
@@ -3843,7 +3842,7 @@ function CosmosGraph(props) {
     if (!svgRef.current || !gRef.current) return;
     const svgSel = select(svgRef.current);
     const gSel = select(gRef.current);
-    const zb = d3zoom().scaleExtent([ZOOM.min, ZOOM.max]).interpolate(linearZoomInterpolate).on("start", () => setPanning(true)).on("zoom", (event) => {
+    const zb = d3zoom().scaleExtent([ZOOM.min, ZOOM.max]).on("start", () => setPanning(true)).on("zoom", (event) => {
       gSel.attr("transform", event.transform.toString());
       setZoomK(event.transform.k);
     }).on("end", () => setPanning(false));
@@ -3854,15 +3853,6 @@ function CosmosGraph(props) {
       zoomRef.current = null;
     };
   }, []);
-  useEffect(() => {
-    if (!selectedNid || !svgRef.current || !zoomRef.current) return;
-    const p = positions.get(selectedNid);
-    if (!p) return;
-    const currentZoom = select(svgRef.current).property("__zoom");
-    const k = (currentZoom == null ? void 0 : currentZoom.k) ?? 1;
-    const t = identity.translate(LAYOUT.cx - p.x * k, LAYOUT.cy - p.y * k).scale(k);
-    select(svgRef.current).transition().duration(800).ease((u) => 1 - Math.pow(1 - u, 3)).call(zoomRef.current.transform, t);
-  }, [selectedNid]);
   const reset = () => {
     if (!svgRef.current || !zoomRef.current) return;
     select(svgRef.current).transition().duration(ZOOM.resetMs).call(zoomRef.current.transform, identity);
