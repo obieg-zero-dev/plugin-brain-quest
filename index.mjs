@@ -3860,23 +3860,21 @@ function CosmosGraph(props) {
     const svg = svgRef.current, g = gRef.current;
     const start2 = svg.__zoom;
     if (!start2) return;
-    const k = start2.k, startX = start2.x, startY = start2.y;
+    const k = start2.k;
     const endX = LAYOUT.cx - p.x * k, endY = LAYOUT.cy - p.y * k;
-    if (Math.abs(endX - startX) < 0.5 && Math.abs(endY - startY) < 0.5) return;
-    const t0 = performance.now(), dur = 1500;
-    let raf = 0;
-    const tick = (now2) => {
-      const u = Math.min((now2 - t0) / dur, 1);
-      const e = Math.sin(u * Math.PI / 2);
-      const x2 = startX + (endX - startX) * e;
-      const y2 = startY + (endY - startY) * e;
-      const tr = identity.translate(x2, y2).scale(k);
-      svg.__zoom = tr;
+    if (Math.abs(endX - start2.x) < 0.5 && Math.abs(endY - start2.y) < 0.5) return;
+    const dur = 500;
+    g.style.transformOrigin = "0 0";
+    g.style.transition = `transform ${dur}ms cubic-bezier(0.22, 0.61, 0.36, 1)`;
+    g.style.transform = `translate(${endX}px, ${endY}px) scale(${k})`;
+    const tr = identity.translate(endX, endY).scale(k);
+    const cleanup = window.setTimeout(() => {
+      g.style.transition = "";
+      g.style.transform = "";
       g.setAttribute("transform", tr.toString());
-      if (u < 1) raf = requestAnimationFrame(tick);
-    };
-    raf = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(raf);
+      svg.__zoom = tr;
+    }, dur + 30);
+    return () => window.clearTimeout(cleanup);
   }, [selectedNid]);
   const reset = () => {
     if (!svgRef.current || !zoomRef.current) return;
