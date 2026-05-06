@@ -3863,11 +3863,11 @@ function CosmosGraph(props) {
     const k = start2.k, startX = start2.x, startY = start2.y;
     const endX = LAYOUT.cx - p.x * k, endY = LAYOUT.cy - p.y * k;
     if (Math.abs(endX - startX) < 0.5 && Math.abs(endY - startY) < 0.5) return;
-    const t0 = performance.now(), dur = 800;
+    const t0 = performance.now(), dur = 1500;
     let raf = 0;
     const tick = (now2) => {
       const u = Math.min((now2 - t0) / dur, 1);
-      const e = 1 - Math.pow(1 - u, 3);
+      const e = Math.sin(u * Math.PI / 2);
       const x2 = startX + (endX - startX) * e;
       const y2 = startY + (endY - startY) * e;
       const tr = identity.translate(x2, y2).scale(k);
