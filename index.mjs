@@ -3154,6 +3154,16 @@ const SIM = {
   // mniej wobble po osiadaniu
 };
 const ZOOM = { min: 0.5, max: 5, resetMs: 350 };
+const STATE = {
+  frontierOpacity: 0.55,
+  // niezbadany sąsiad — przyciemnienie body+stroke
+  dimAmt: 0.7,
+  // mix factor "wyblaknięcia" przez color-mix (Planet/Moon/Edge dimmed)
+  plateRadiusOffset: 110,
+  // selectedMoon plate (radial gradient) extra radius
+  highlightLinesCap: 60
+  // O(N²) cap dla highlightLines selected moon (50 nodów = 1225 par bez cap)
+};
 const EMPTY_HITS = {};
 const EMPTY_FLASH_PAIRS = [];
 const MOON = {
@@ -3268,7 +3278,7 @@ const computeLayout = (visibleNodes, allNodes, branches, visibleEdges) => {
     prevR = r;
     return { ...info, radius: r };
   });
-  const parseTier = (n) => {
+  const parseTier2 = (n) => {
     if (typeof n.tier === "number") return n.tier;
     const parsed = parseInt(String(n.tier ?? ""), 10);
     return Number.isFinite(parsed) ? parsed : 0;
@@ -3278,7 +3288,7 @@ const computeLayout = (visibleNodes, allNodes, branches, visibleEdges) => {
     const allOnBranch = allNodes.filter((n) => branchOf(n) === orbit.key);
     if (!allOnBranch.length) continue;
     const sorted = [...allOnBranch].sort((a2, b) => {
-      const dt = parseTier(a2) - parseTier(b);
+      const dt = parseTier2(a2) - parseTier2(b);
       return dt !== 0 ? dt : a2.nid.localeCompare(b.nid);
     });
     const slotByNid = new Map(sorted.map((n, idx) => [n.nid, idx]));
@@ -3469,7 +3479,7 @@ const Planet = (p) => {
   const haloColor = isHl ? COSMOS.highlight : p.color;
   const tierFs = Math.max(7, p.baseR * 0.85) / p.zoomFactor;
   const isFrontier = !!p.frontier;
-  const dimAmt = p.dimmed ? 0.7 : 0;
+  const dimAmt = p.dimmed ? STATE.dimAmt : 0;
   const bodyColor = isFrontier ? darken(p.color, 0.6) : p.color;
   const bodyFill = dimAmt ? dim(bodyColor, dimAmt) : bodyColor;
   const liftFill = dimAmt ? dim(darken(p.color), dimAmt) : darken(p.color);
@@ -3485,7 +3495,7 @@ const Planet = (p) => {
         transform: `translate(${p.x} ${p.y})`,
         onMouseEnter: p.onMouseEnter,
         onMouseLeave: p.onMouseLeave,
-        style: isFrontier ? { opacity: 0.55, transition: "opacity 150ms" } : { transition: "opacity 150ms" },
+        style: isFrontier ? { opacity: STATE.frontierOpacity, transition: "opacity 150ms" } : { transition: "opacity 150ms" },
         children: [
           p.isNext && /* @__PURE__ */ jsx(
             "circle",
@@ -3601,9 +3611,30 @@ const FlashEdge = (p) => /* @__PURE__ */ jsx(
     pointerEvents: "none"
   }
 );
+const Legend = ({ relTypes }) => {
+  if (!relTypes.length) return null;
+  return /* @__PURE__ */ jsx("div", { style: {
+    position: "absolute",
+    bottom: 8,
+    left: 8,
+    background: COSMOS.hudBg,
+    padding: "4px 10px",
+    borderRadius: 6,
+    color: COSMOS.hud,
+    fontSize: 11,
+    display: "flex",
+    flexWrap: "wrap",
+    gap: 10,
+    maxWidth: 380,
+    pointerEvents: "none"
+  }, children: relTypes.map((r) => /* @__PURE__ */ jsxs("span", { style: { display: "flex", alignItems: "center", gap: 5 }, children: [
+    /* @__PURE__ */ jsx("span", { style: { width: 14, height: 2, background: tok(r.color), borderRadius: 1 } }),
+    r.label
+  ] }, r.key)) });
+};
 const Moon = (p) => {
   const size = p.selected ? MOON.sizeSelected : MOON.size;
-  const dimAmt = p.dimmed ? 0.7 : 0;
+  const dimAmt = p.dimmed ? STATE.dimAmt : 0;
   const bodyFill = dimAmt ? dim(p.color, dimAmt) : p.color;
   const liftFill = dimAmt ? dim(darken(p.color), dimAmt) : darken(p.color);
   const rectTransition = "x 250ms ease-out, y 250ms ease-out, width 250ms ease-out, height 250ms ease-out, fill 350ms ease-out, stroke 250ms ease-out, stroke-opacity 250ms ease-out, stroke-width 250ms ease-out, filter 300ms ease-out";
@@ -3665,7 +3696,6 @@ function CosmosGraph(props) {
     onSelectNode,
     onSelectMoon,
     onDeselect,
-    contextBranchPrefix,
     placeholder,
     progress,
     bigBranches = [],
@@ -3739,15 +3769,6 @@ function CosmosGraph(props) {
     }
     return m2;
   }, [visMoons]);
-  const contextNids = useMemo(() => {
-    const set2 = /* @__PURE__ */ new Set();
-    if (!contextBranchPrefix) return set2;
-    const prefix = contextBranchPrefix.toLowerCase();
-    for (const n of visNodes) {
-      if (n.branch.toLowerCase().startsWith(prefix)) set2.add(n.nid);
-    }
-    return set2;
-  }, [visNodes, contextBranchPrefix]);
   const relColorByKey = useMemo(() => {
     const m2 = /* @__PURE__ */ new Map();
     for (const r of relTypes) m2.set(r.key, { label: r.label, color: tok(r.color) });
@@ -3768,6 +3789,8 @@ function CosmosGraph(props) {
     for (const n of initialSimNodes) m2.set(n.id, { x: n.x ?? 0, y: n.y ?? 0 });
     return m2;
   });
+  const pendingPositionsRef = useRef(null);
+  const rafIdRef = useRef(null);
   useEffect(() => {
     const persistent = simNodesRef.current;
     const simNodes = initialSimNodes.map((n) => {
@@ -3783,19 +3806,27 @@ function CosmosGraph(props) {
       return fresh;
     });
     const visibleIds = new Set(initialSimNodes.map((n) => n.id));
-    for (const id2 of Array.from(persistent.keys())) {
-      if (!visibleIds.has(id2)) persistent.delete(id2);
-    }
+    for (const id2 of Array.from(persistent.keys())) if (!visibleIds.has(id2)) persistent.delete(id2);
     const links = simLinks.map((l) => ({ source: l.source, target: l.target }));
     const sim = forceSimulation(simNodes).force("radial", forceRadial((d) => d.targetR, cx, cy).strength(SIM.radial)).force("collide", forceCollide(SIM.collide)).force("link", forceLink(links).id((d) => d.id).distance(SIM.linkDistance).strength(SIM.linkStrength)).force("charge", forceManyBody().strength(SIM.charge)).alpha(SIM.alpha).alphaDecay(SIM.alphaDecay).alphaMin(SIM.alphaMin).velocityDecay(SIM.velocityDecay).on("tick", () => {
-      const next = /* @__PURE__ */ new Map();
-      for (const n of simNodes) next.set(n.id, { x: n.x ?? 0, y: n.y ?? 0 });
-      setPositions(next);
+      const latest = /* @__PURE__ */ new Map();
+      for (const n of simNodes) latest.set(n.id, { x: n.x ?? 0, y: n.y ?? 0 });
+      pendingPositionsRef.current = latest;
+      if (rafIdRef.current === null) {
+        rafIdRef.current = requestAnimationFrame(() => {
+          if (pendingPositionsRef.current) setPositions(pendingPositionsRef.current);
+          rafIdRef.current = null;
+        });
+      }
     });
     simRef.current = sim;
     return () => {
       sim.stop();
       simRef.current = null;
+      if (rafIdRef.current !== null) {
+        cancelAnimationFrame(rafIdRef.current);
+        rafIdRef.current = null;
+      }
     };
   }, [initialSimNodes, simLinks, cx, cy]);
   useEffect(() => {
@@ -3857,6 +3888,7 @@ function CosmosGraph(props) {
     ) }, o.key);
   }) }), [orbits, cx, cy, z, bigBranchSet]);
   const edgesLayer = useMemo(() => /* @__PURE__ */ jsx(Fragment, { children: visEdges.map((e, i) => {
+    var _a, _b;
     const a2 = positions.get(e.from), b = positions.get(e.to);
     if (!a2 || !b) return null;
     const hasType = !!e.type;
@@ -3871,21 +3903,21 @@ function CosmosGraph(props) {
       // relevant
     );
     const stronglyVisible = d < 0.6;
+    const typeColor = e.type ? (_a = relColorByKey.get(e.type)) == null ? void 0 : _a.color : void 0;
     return /* @__PURE__ */ jsx("g", { children: /* @__PURE__ */ jsx(
       Edge,
       {
         a: a2,
         b,
-        color: branchColorByNid.get(e.to) || COSMOS.fallback,
+        color: typeColor || branchColorByNid.get(e.to) || COSMOS.fallback,
         dim: d,
         sw: hasType ? stronglyVisible ? 2 : 1.5 : stronglyVisible ? 1.5 : 1,
-        dashed: contextNids.has(e.from) || contextNids.has(e.to),
         arrow: hasType ? { targetR: baseRByNid.get(e.to) || LAYOUT.defaultSize } : void 0,
-        label: e.type && !!neighborSet && isEdgeFocused(e.from, e.to) ? { text: e.type, color: COSMOS.edgeLabel } : void 0,
+        label: e.type && !!neighborSet && isEdgeFocused(e.from, e.to) ? { text: ((_b = relColorByKey.get(e.type)) == null ? void 0 : _b.label) || e.type, color: typeColor || COSMOS.edgeLabel } : void 0,
         zoomFactor: z
       }
     ) }, `e-${i}`);
-  }) }), [visEdges, positions, neighborSet, focusNid, z, contextNids, baseRByNid, branchColorByNid]);
+  }) }), [visEdges, positions, neighborSet, focusNid, z, baseRByNid, branchColorByNid, relColorByKey]);
   const contextLayer = useMemo(() => /* @__PURE__ */ jsx(Fragment, { children: visContextEdges.map((ce, i) => {
     if (!neighborSet && ce.count < 2) return null;
     const a2 = positions.get(ce.from), b = positions.get(ce.to);
@@ -3912,12 +3944,11 @@ function CosmosGraph(props) {
         color: relColor,
         dim: d,
         sw: 1 + Math.min(ce.count - 1, 2) * 0.4,
-        dashed: contextNids.has(ce.from) || contextNids.has(ce.to),
         label: !!neighborSet && isEdgeFocused(ce.from, ce.to) ? { text: `${relLabel}${ce.count > 1 ? ` ·${ce.count}` : ""}`, color: relColor, size: 8, weight: 600 } : void 0,
         zoomFactor: z
       }
     ) }, `ctx-${i}`);
-  }) }), [visContextEdges, positions, neighborSet, focusNid, z, contextNids, relColorByKey]);
+  }) }), [visContextEdges, positions, neighborSet, focusNid, z, relColorByKey]);
   const flashLayer = useMemo(() => {
     if (!visFlashPairs.length) return null;
     return /* @__PURE__ */ jsx(Fragment, { children: visFlashPairs.map((fp, i) => {
@@ -3926,14 +3957,13 @@ function CosmosGraph(props) {
       return /* @__PURE__ */ jsx(FlashEdge, { a: a2, b, fresh: fp.fresh }, `fl-${i}-${fp.fromNid}-${fp.toNid}`);
     }) });
   }, [visFlashPairs, positions]);
-  const HIGHLIGHT_LINES_CAP = 60;
   const highlightLines = useMemo(() => {
     if (!selectedMoonId || !highlightedNids) return null;
     const nids = Array.from(highlightedNids);
     const lines = [];
     outer: for (let i = 0; i < nids.length; i++) {
       for (let j = i + 1; j < nids.length; j++) {
-        if (lines.length >= HIGHLIGHT_LINES_CAP) break outer;
+        if (lines.length >= STATE.highlightLinesCap) break outer;
         const a2 = positions.get(nids[i]);
         const b = positions.get(nids[j]);
         if (!a2 || !b) continue;
@@ -4003,7 +4033,7 @@ function CosmosGraph(props) {
         const x2 = p.x + Math.cos(ang) * moonOrbitR;
         const y2 = p.y + Math.sin(ang) * moonOrbitR;
         const gradId = `${instanceId}-plate-${safeIdAtom(n.nid)}`;
-        const plateR = MOON.sizeSelected + 110;
+        const plateR = MOON.sizeSelected + STATE.plateRadiusOffset;
         plates.push(
           /* @__PURE__ */ jsxs("g", { children: [
             /* @__PURE__ */ jsxs(
@@ -4184,7 +4214,8 @@ function CosmosGraph(props) {
           children: "Reset"
         }
       )
-    ] })
+    ] }),
+    /* @__PURE__ */ jsx(Legend, { relTypes })
   ] });
 }
 const COSMOS_TOKENS = Object.freeze({
@@ -4194,23 +4225,31 @@ const COSMOS_TOKENS = Object.freeze({
   darken,
   hashStr
 });
+const norm = (s) => s.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^a-z0-9]/g, "");
 const CAT_COLORS = {
   motyw: "#f59e0b",
   topos: "#ef4444",
   gatunek: "#4a90e2",
   srodek: "#9b59b6",
-  srodek_stylistyczny: "#9b59b6",
+  srodekstylistyczny: "#9b59b6",
   postac: "#22c55e",
-  pojecie: "#fde68a",
-  "pojęcie": "#fde68a"
+  pojecie: "#fde68a"
 };
 const catColor = (c2) => {
-  if (CAT_COLORS[c2]) return CAT_COLORS[c2];
-  if (!c2) return COSMOS_TOKENS.tok(COSMOS_TOKENS.PALETTE[0]);
-  return COSMOS_TOKENS.tok(COSMOS_TOKENS.PALETTE[COSMOS_TOKENS.hashStr(c2) % COSMOS_TOKENS.PALETTE.length]);
+  const k = norm(c2);
+  if (CAT_COLORS[k]) return CAT_COLORS[k];
+  if (!k) return COSMOS_TOKENS.tok(COSMOS_TOKENS.PALETTE[0]);
+  return COSMOS_TOKENS.tok(COSMOS_TOKENS.PALETTE[COSMOS_TOKENS.hashStr(k) % COSMOS_TOKENS.PALETTE.length]);
 };
+const MAX_CONTEXT_NODES_PER_TERM = 6;
 const EDGE_KEY_SEP = "\0";
 const EMPTY_NID_SET = /* @__PURE__ */ new Set();
+const parseTier = (n) => {
+  const t = n.data.tier;
+  if (typeof t === "number") return t;
+  const p = parseInt(String(t ?? ""), 10);
+  return Number.isFinite(p) ? p : 0;
+};
 function useBqGraphData(store, treeId, opts = {}) {
   const tid = treeId || "";
   const { gateByDiscoveries = false, selectedMoonId = null, selectedPostId = null } = opts;
@@ -4226,8 +4265,7 @@ function useBqGraphData(store, treeId, opts = {}) {
     const m2 = /* @__PURE__ */ new Map();
     for (const c2 of rawAllContent) {
       if (String(c2.data.contentType) === "quiz") continue;
-      const pid = c2.parentId;
-      if (pid) m2.set(pid, (m2.get(pid) || 0) + 1);
+      if (c2.parentId) m2.set(c2.parentId, (m2.get(c2.parentId) || 0) + 1);
     }
     return m2;
   }, [rawAllContent]);
@@ -4239,10 +4277,8 @@ function useBqGraphData(store, treeId, opts = {}) {
       const lex = ln.parentId ? lexById.get(ln.parentId) : void 0;
       if (!lex) continue;
       const nid = String(ln.data.nid);
-      if (!lexsByNid2.has(nid)) lexsByNid2.set(nid, []);
-      lexsByNid2.get(nid).push(lex);
-      if (!nidsByLex2.has(lex.id)) nidsByLex2.set(lex.id, /* @__PURE__ */ new Set());
-      nidsByLex2.get(lex.id).add(nid);
+      (lexsByNid2.get(nid) ?? lexsByNid2.set(nid, []).get(nid)).push(lex);
+      (nidsByLex2.get(lex.id) ?? nidsByLex2.set(lex.id, /* @__PURE__ */ new Set()).get(lex.id)).add(nid);
     }
     return { lexsByNid: lexsByNid2, nidsByLex: nidsByLex2 };
   }, [rawLexicons, rawAllLexNodes]);
@@ -4276,8 +4312,7 @@ function useBqGraphData(store, treeId, opts = {}) {
     const out = [];
     for (const lex of rawLexicons) {
       if (discoveredTermIds && !discoveredTermIds.has(lex.id)) continue;
-      const nids = nidsByLex.get(lex.id) || /* @__PURE__ */ new Set();
-      for (const nid of nids) {
+      for (const nid of nidsByLex.get(lex.id) || []) {
         out.push({
           nodeId: nid,
           id: lex.id,
@@ -4293,15 +4328,18 @@ function useBqGraphData(store, treeId, opts = {}) {
     for (const lex of rawLexicons) {
       if (discoveredTermIds && !discoveredTermIds.has(lex.id)) continue;
       const nidsArr = Array.from(nidsByLex.get(lex.id) || []);
-      if (nidsArr.length < 2) continue;
+      if (nidsArr.length < 2 || nidsArr.length > MAX_CONTEXT_NODES_PER_TERM) continue;
       const rel = String(lex.data.relation || "inne");
       for (let i = 0; i < nidsArr.length; i++) {
         for (let j = i + 1; j < nidsArr.length; j++) {
           const [a2, b] = [nidsArr[i], nidsArr[j]].sort();
           const key = `${a2}${EDGE_KEY_SEP}${b}`;
-          if (!map.has(key)) map.set(key, { from: a2, to: b, rels: /* @__PURE__ */ new Map() });
-          const e = map.get(key);
-          e.rels.set(rel, (e.rels.get(rel) || 0) + 1);
+          let entry = map.get(key);
+          if (!entry) {
+            entry = { from: a2, to: b, rels: /* @__PURE__ */ new Map() };
+            map.set(key, entry);
+          }
+          entry.rels.set(rel, (entry.rels.get(rel) || 0) + 1);
         }
       }
     }
@@ -4327,9 +4365,8 @@ function useBqGraphData(store, treeId, opts = {}) {
     if (!selectedMoonId) return void 0;
     const myNids = nidsByLex.get(selectedMoonId) || EMPTY_NID_SET;
     const ids = /* @__PURE__ */ new Set();
-    for (const nid of myNids) {
-      const here = lexsByNid.get(nid) || [];
-      for (const l of here) if (l.id !== selectedMoonId) ids.add(l.id);
+    for (const nid of myNids) for (const l of lexsByNid.get(nid) || []) {
+      if (l.id !== selectedMoonId) ids.add(l.id);
     }
     return ids;
   }, [selectedMoonId, nidsByLex, lexsByNid]);
@@ -4340,21 +4377,32 @@ function useBqGraphData(store, treeId, opts = {}) {
   }, [rawNodes]);
   const nextNid = useMemo(() => {
     if (!gateByDiscoveries) return null;
+    const tierByNid = /* @__PURE__ */ new Map();
+    for (const n of rawNodes) tierByNid.set(String(n.data.nodeId), parseTier(n));
     const discNodeIds = new Set(rawNodes.filter((n) => Number(n.data.hits) > 0).map((n) => String(n.data.nodeId)));
     if (!discNodeIds.size) {
-      const sorted = [...rawNodes].sort((a2, b) => Number(a2.data.tier) - Number(b.data.tier));
+      const sorted = [...rawNodes].sort((a2, b) => parseTier(a2) - parseTier(b));
       return sorted[0] ? String(sorted[0].data.nodeId) : null;
     }
     const scores = /* @__PURE__ */ new Map();
     for (const t of rawLexicons) {
-      const tn = Array.from(nidsByLex.get(t.id) || []);
-      if (!tn.some((x2) => discNodeIds.has(x2))) continue;
+      const tn = nidsByLex.get(t.id) || EMPTY_NID_SET;
+      let touchesDisc = false;
+      for (const x2 of tn) if (discNodeIds.has(x2)) {
+        touchesDisc = true;
+        break;
+      }
+      if (!touchesDisc) continue;
       for (const x2 of tn) if (!discNodeIds.has(x2)) scores.set(x2, (scores.get(x2) || 0) + 1);
     }
-    let best = "", bs = 0;
-    for (const [k, v] of scores) if (v > bs) {
-      best = k;
-      bs = v;
+    let best = "", bestScore = 0, bestTier = Infinity;
+    for (const [nid, score] of scores) {
+      const tier = tierByNid.get(nid) ?? Infinity;
+      if (score > bestScore || score === bestScore && tier < bestTier || score === bestScore && tier === bestTier && nid < best) {
+        best = nid;
+        bestScore = score;
+        bestTier = tier;
+      }
     }
     return best || null;
   }, [gateByDiscoveries, rawNodes, rawLexicons, nidsByLex]);
