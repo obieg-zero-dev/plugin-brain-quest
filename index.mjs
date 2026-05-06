@@ -4170,6 +4170,8 @@ function CosmosGraph(props) {
         ref: svgRef,
         viewBox: "0 0 600 600",
         preserveAspectRatio: "xMidYMid meet",
+        shapeRendering: "optimizeSpeed",
+        textRendering: "optimizeSpeed",
         style: {
           display: "block",
           width: "100%",
