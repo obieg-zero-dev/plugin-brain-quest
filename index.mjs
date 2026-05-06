@@ -3856,6 +3856,9 @@ function CosmosGraph(props) {
     };
   }, []);
   useEffect(() => {
+    if (selectedNid && simRef.current) simRef.current.alpha(0).stop();
+  }, [selectedNid]);
+  useEffect(() => {
     if (quiet) return;
     if (!selectedNid || !svgRef.current || !gRef.current) return;
     const p = positions.get(selectedNid);
