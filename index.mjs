@@ -3178,9 +3178,11 @@ const MOON = {
 };
 const SONAR = {
   rings: 2,
-  duration: 5,
+  duration: 6,
+  // wolniej żeby większy zasięg nie wydawał się "rwany"
   scaleFrom: 1,
-  scaleTo: 2.6,
+  scaleTo: 6,
+  // 2.6 → 6: większy zasięg, sonar dociera do orbit dalej
   opacityFrom: 0.55,
   strokeWidth: 2.2
 };
@@ -3466,6 +3468,7 @@ const Sonar = (p) => /* @__PURE__ */ jsx("g", { transform: `translate(${p.x} ${p
     fill: "none",
     stroke: p.color,
     strokeWidth: SONAR.strokeWidth,
+    shapeRendering: "optimizeSpeed",
     style: {
       transformBox: "fill-box",
       transformOrigin: "center",
