@@ -4382,67 +4382,27 @@ function useBqGraphData(store, treeId, opts = {}) {
     lexsByNid
   };
 }
-const GH_API = "https://api.github.com";
-const GH_RAW = "https://raw.githubusercontent.com";
 const plugin = ({ React, ui, store, sdk, icons }) => {
   const { useState: useState2, useMemo: useMemo2, useEffect: useEffect2 } = React;
-  const { Award, X, Zap, BookOpen } = icons;
-  store.registerType("tree", [
-    { key: "title", label: "Tytuł", required: true },
-    { key: "repo", label: "Repo" },
-    { key: "extId", label: "ID zewnętrzne" }
-  ], "Drzewa wiedzy");
-  store.registerType("branch", [
-    { key: "key", label: "Klucz", required: true },
-    { key: "label", label: "Etykieta", required: true },
-    { key: "color", label: "Kolor" }
-  ], "Gałęzie");
-  store.registerType("relType", [
-    { key: "key", label: "Klucz", required: true },
-    { key: "label", label: "Etykieta", required: true },
-    { key: "color", label: "Kolor" }
-  ], "Typy relacji");
-  store.registerType("node", [
-    { key: "nodeId", label: "ID", required: true },
-    { key: "title", label: "Tytuł", required: true },
-    { key: "branch", label: "Gałąź" },
-    { key: "tier", label: "Poziom" },
-    { key: "hits", label: "Odkrycia" },
-    { key: "repo", label: "Repo źródłowe" }
-  ], "Węzły");
-  store.registerType("edge", [
-    { key: "fromNid", label: "Od (nodeId)", required: true },
-    { key: "toNid", label: "Do (nodeId)", required: true },
-    { key: "type", label: "Typ" }
-  ], "Krawędzie");
-  store.registerType("content", [
-    { key: "contentType", label: "Typ", required: true },
-    { key: "text", label: "Tekst", required: true },
-    { key: "answer", label: "Odpowiedź" }
-  ], "Treści");
-  store.registerType("lexicon", [
-    { key: "term", label: "Termin", required: true },
-    { key: "definition", label: "Definicja", required: true },
-    { key: "category", label: "Kategoria" },
-    { key: "relation", label: "Relacja" }
-  ], "Leksykon");
-  store.registerType("lexNode", [
-    { key: "nid", label: "NodeId", required: true }
-  ], "Powiązania term↔węzeł");
-  store.registerType("quiz", [
-    { key: "question", label: "Pytanie", required: true },
-    { key: "answer", label: "Odpowiedź", required: true },
-    { key: "wrong1", label: "Dystraktor 1" },
-    { key: "wrong2", label: "Dystraktor 2" },
-    { key: "wrong3", label: "Dystraktor 3" },
-    { key: "hint", label: "Wskazówka" }
-  ], "Quizy");
+  const { Award, X, Zap, BookOpen, Package } = icons;
   store.registerType("discovery", [
     { key: "termId", label: "Termin", required: true },
     { key: "hits", label: "Odkrycia" },
     { key: "firstSeen", label: "Pierwsze" },
     { key: "lastSeen", label: "Ostatnie" }
   ], "Odkrycia");
+  const bqLoader = () => {
+    var _a;
+    return (_a = sdk.shared.getState()) == null ? void 0 : _a.bqLoader;
+  };
+  const loadNodeContent = (treeId, nodeId) => {
+    var _a;
+    return (_a = bqLoader()) == null ? void 0 : _a.loadNodeContent(treeId, nodeId);
+  };
+  const loadLexiconFromRepo = (treeId, org, repo) => {
+    var _a;
+    return (_a = bqLoader()) == null ? void 0 : _a.loadLexiconFromRepo(treeId, org, repo);
+  };
   const edgeStr = (disc) => {
     const hits = Number(disc.data.hits) || 0;
     const lastSeen = Number(disc.data.lastSeen) || Date.now();
@@ -4630,181 +4590,6 @@ const plugin = ({ React, ui, store, sdk, icons }) => {
       ] })
     ] }) });
   }
-  const DEFAULT_ORG = "BQ-content";
-  const flattenLexEntry = (entry, treeId) => {
-    var _a, _b, _c;
-    const data = entry.data || {};
-    const lexId = store.add("lexicon", {
-      term: data.term,
-      definition: data.definition,
-      category: data.category,
-      relation: data.relation
-    }, { parentId: treeId }).id;
-    const nodes = jparse(String(data.nodes || "[]"), []);
-    for (const nid of nodes) store.add("lexNode", { nid }, { parentId: lexId });
-    const quiz = jparse(String(data.quiz || "{}"), {});
-    if (quiz.question || quiz.answer) {
-      store.add("quiz", {
-        question: quiz.question || "",
-        answer: quiz.answer || "",
-        wrong1: ((_a = quiz.wrong) == null ? void 0 : _a[0]) || "",
-        wrong2: ((_b = quiz.wrong) == null ? void 0 : _b[1]) || "",
-        wrong3: ((_c = quiz.wrong) == null ? void 0 : _c[2]) || "",
-        hint: quiz.hint || ""
-      }, { parentId: lexId });
-    }
-  };
-  const loadLexicon = async (base, tree, repoFilter) => {
-    const allNodes = store.getPosts("node").filter((n) => n.parentId === tree.id);
-    const nodes = repoFilter ? allNodes.filter((n) => String(n.data.repo) === repoFilter) : allNodes;
-    const fetches = nodes.map(async (n) => {
-      var _a, _b;
-      try {
-        const r = await fetch(`${base}/lexicon/${n.data.nodeId}.json`);
-        if (!r.ok) return 0;
-        const entries = JSON.parse(await r.text());
-        let count = 0;
-        const existing = store.getPosts("lexicon").filter((x2) => x2.parentId === tree.id);
-        const existingNames = new Set(existing.map((x2) => String(x2.data.term)));
-        for (const l of entries) {
-          if (existingNames.has(String((_a = l.data) == null ? void 0 : _a.term))) continue;
-          flattenLexEntry(l, tree.id);
-          existingNames.add(String((_b = l.data) == null ? void 0 : _b.term));
-          count++;
-        }
-        return count;
-      } catch {
-        return 0;
-      }
-    });
-    const counts = await Promise.all(fetches);
-    return counts.reduce((a2, b) => a2 + b, 0);
-  };
-  const importTreeSeed = (seeds, repo) => {
-    var _a, _b, _c, _d, _e, _f;
-    const root2 = seeds[0];
-    if (!root2 || root2.type !== "tree") return null;
-    const treeTitle = String(((_a = root2.data) == null ? void 0 : _a.title) || "");
-    const extendsId = String(((_b = root2.data) == null ? void 0 : _b.extends) || "");
-    const ownExtId = String(((_c = root2.data) == null ? void 0 : _c.id) || "");
-    let treeId;
-    let merged = false;
-    let count = 0;
-    if (extendsId) {
-      const trees = store.getPosts("tree");
-      const target = trees.find((t) => String(t.data.extId) === extendsId || String(t.data.title) === extendsId);
-      if (!target) {
-        sdk.log(`Rozszerzenie wymaga bazy "${extendsId}" — załaduj ją najpierw`, "error");
-        return null;
-      }
-      treeId = target.id;
-      merged = true;
-    } else {
-      treeId = store.add("tree", { title: treeTitle, extId: ownExtId }).id;
-      count = 1;
-    }
-    const childPosts = (type) => store.getPosts(type).filter((p) => p.parentId === treeId);
-    const existingNodeIds = new Set(childPosts("node").map((n) => String(n.data.nodeId)));
-    const existingBranchKeys = new Set(childPosts("branch").map((b) => String(b.data.key)));
-    const existingRelTypeKeys = new Set(childPosts("relType").map((r) => String(r.data.key)));
-    const existingEdgeKeys = new Set(childPosts("edge").map((e) => `${e.data.fromNid}:${e.data.toNid}:${e.data.type || ""}`));
-    for (const [field, type, existing] of [
-      ["branches", "branch", existingBranchKeys],
-      ["relations", "relType", existingRelTypeKeys]
-    ]) {
-      const dict = jparse(String(((_d = root2.data) == null ? void 0 : _d[field]) || "{}"), {});
-      for (const [key, def] of Object.entries(dict)) {
-        if (existing.has(key)) continue;
-        store.add(type, { key, label: def.label, color: def.color }, { parentId: treeId });
-        count++;
-      }
-    }
-    for (const e of jparse(String(((_e = root2.data) == null ? void 0 : _e.edges) || "[]"), [])) {
-      const k = `${e.from}:${e.to}:${e.type || ""}`;
-      if (existingEdgeKeys.has(k)) continue;
-      store.add("edge", { fromNid: e.from, toNid: e.to, type: e.type || "" }, { parentId: treeId });
-      count++;
-    }
-    for (const child of root2.children || []) {
-      if (child.type !== "node") continue;
-      const nid = String(((_f = child.data) == null ? void 0 : _f.nodeId) || "");
-      if (existingNodeIds.has(nid)) continue;
-      store.add("node", { ...child.data, repo }, { parentId: treeId });
-      count++;
-    }
-    return { treeId, treeTitle, count, merged };
-  };
-  const loadTree = async (org, repo) => {
-    try {
-      const base = `${GH_RAW}/${org}/${repo}/main`;
-      const repoKey = `${org}/${repo}`;
-      const treeRes = await fetch(`${base}/tree.json`);
-      if (!treeRes.ok) throw new Error(`tree.json: ${treeRes.status}`);
-      const treeSeeds = JSON.parse(await treeRes.text());
-      const imported = importTreeSeed(treeSeeds, repoKey);
-      if (!imported) {
-        sdk.log(`${repo} — niepoprawny tree.json lub brak bazy`, "error");
-        return;
-      }
-      const tree = store.get(imported.treeId);
-      if (tree) {
-        const lexCount = await loadLexicon(base, tree, repoKey);
-        const tag = imported.merged ? `${repo} (rozszerzenie)` : repo;
-        sdk.log(`${tag} — ${imported.count + lexCount} rekordów`, "ok");
-        if (!imported.merged) store.update(tree.id, { repo: repoKey });
-      }
-    } catch (e) {
-      sdk.log(String(e), "error");
-    }
-  };
-  const loadLexiconFromRepo = async (treeId, org, repo) => {
-    const tree = store.get(treeId);
-    if (!tree) return;
-    const base = `${GH_RAW}/${org}/${repo}/main`;
-    const count = await loadLexicon(base, tree);
-    sdk.log(`${repo} — ${count} nowych terminów`, "ok");
-  };
-  const loadNodeContent = async (treeId, nodeId) => {
-    const tree = store.get(treeId);
-    if (!tree) return;
-    const nodes = store.getPosts("node").filter((n) => n.parentId === treeId);
-    const node = nodes.find((n) => String(n.data.nodeId) === nodeId);
-    if (!node) return;
-    const repo = String(node.data.repo || tree.data.repo || "");
-    if (!repo) return;
-    const existing = store.getPosts("content").filter((c2) => c2.parentId === node.id);
-    if (existing.length > 0) return;
-    try {
-      const r = await fetch(`${GH_RAW}/${repo}/main/content/${nodeId}.json`);
-      if (!r.ok) return;
-      const entries = JSON.parse(await r.text());
-      for (const e of entries) {
-        store.add(e.type, e.data, { parentId: node.id });
-      }
-    } catch (e) {
-      sdk.log(`Content ${nodeId}: ${e}`, "error");
-    }
-  };
-  function RepoPicker() {
-    const org = store.useOption("bq:githubOrg") || DEFAULT_ORG;
-    const [repos, setRepos] = useState2([]);
-    const [loading, setLoading] = useState2(true);
-    useEffect2(() => {
-      fetch(`${GH_API}/search/repositories?q=org:${org}+topic:brainquest&per_page=100`).then((r) => r.ok ? r.json() : Promise.reject(r.status)).then((d) => setRepos(d.items.sort((a2, b) => a2.name.localeCompare(b.name)))).catch((e) => sdk.log(`GitHub: ${e}`, "error")).finally(() => setLoading(false));
-    }, [org]);
-    return /* @__PURE__ */ jsx(ui.Page, { children: /* @__PURE__ */ jsxs(ui.Stack, { children: [
-      /* @__PURE__ */ jsx(ui.Heading, { title: "Wybierz przedmiot", subtitle: "Kliknij aby rozpocząć naukę" }),
-      loading && /* @__PURE__ */ jsx(ui.Spinner, {}),
-      repos.map((r) => /* @__PURE__ */ jsx(ui.Card, { children: /* @__PURE__ */ jsxs(ui.Row, { justify: "between", children: [
-        /* @__PURE__ */ jsxs(ui.Stack, { children: [
-          /* @__PURE__ */ jsx(ui.Text, { bold: true, children: r.description || r.name }),
-          /* @__PURE__ */ jsx(ui.Text, { muted: true, size: "xs", children: r.name })
-        ] }),
-        /* @__PURE__ */ jsx(ui.Button, { color: "primary", onClick: () => loadTree(org, r.name), children: "Rozpocznij" })
-      ] }) }, r.name)),
-      !loading && !repos.length && /* @__PURE__ */ jsx(ui.Text, { muted: true, children: "Brak dostępnych przedmiotów" })
-    ] }) });
-  }
   const removeTreeWithDiscoveries = (treeId) => {
     const termIds = new Set(
       store.getPosts("lexicon").filter((l) => l.parentId === treeId).map((l) => l.id)
@@ -4943,7 +4728,13 @@ const plugin = ({ React, ui, store, sdk, icons }) => {
     useEffect2(() => {
       if (!treeId && trees.length) useNav.setState({ treeId: trees[0].id });
     }, [treeId, trees.length]);
-    if (!treeId && !trees.length) return /* @__PURE__ */ jsx(RepoPicker, {});
+    if (!treeId && !trees.length) return /* @__PURE__ */ jsx(ui.Page, { children: /* @__PURE__ */ jsxs(ui.Stack, { children: [
+      /* @__PURE__ */ jsx(ui.Placeholder, { text: "Brak załadowanych paczek wiedzy", children: /* @__PURE__ */ jsx(Package, { size: 32 }) }),
+      /* @__PURE__ */ jsxs(ui.Button, { color: "primary", block: true, onClick: () => sdk.useHostStore.setState({ activeId: "plugin-bq-loader" }), children: [
+        /* @__PURE__ */ jsx(Package, { size: 14 }),
+        " Otwórz menedżer paczek"
+      ] })
+    ] }) });
     if (!treeId) return null;
     return /* @__PURE__ */ jsx(
       ui.OverlayContainer,

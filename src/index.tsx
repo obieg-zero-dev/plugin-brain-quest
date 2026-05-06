@@ -2,71 +2,25 @@ import type { PluginFactory, PostRecord } from '@obieg-zero/sdk'
 import { CosmosGraph } from '@obieg-zero/cosmos-graph'
 import { useBqGraphData } from '@obieg-zero/bq-cosmos'
 
-const GH_API = 'https://api.github.com'
-const GH_RAW = 'https://raw.githubusercontent.com'
+// Loader paczek (typy danych, importTreeSeed, loadTree, loadNodeContent, RepoPicker) jest w plugin-bq-loader.
+// Stąd konsumujemy bqLoader przez sdk.shared.
 
 const plugin: PluginFactory = ({ React, ui, store, sdk, icons }) => {
   const { useState, useMemo, useEffect } = React
-  const { Award, X, Zap, BookOpen } = icons
+  const { Award, X, Zap, BookOpen, Package } = icons
 
-
-  store.registerType('tree', [
-    { key: 'title', label: 'Tytuł', required: true },
-    { key: 'repo', label: 'Repo' },
-    { key: 'extId', label: 'ID zewnętrzne' },
-  ], 'Drzewa wiedzy')
-  store.registerType('branch', [
-    { key: 'key', label: 'Klucz', required: true },
-    { key: 'label', label: 'Etykieta', required: true },
-    { key: 'color', label: 'Kolor' },
-  ], 'Gałęzie')
-  store.registerType('relType', [
-    { key: 'key', label: 'Klucz', required: true },
-    { key: 'label', label: 'Etykieta', required: true },
-    { key: 'color', label: 'Kolor' },
-  ], 'Typy relacji')
-  store.registerType('node', [
-    { key: 'nodeId', label: 'ID', required: true },
-    { key: 'title', label: 'Tytuł', required: true },
-    { key: 'branch', label: 'Gałąź' },
-    { key: 'tier', label: 'Poziom' },
-    { key: 'hits', label: 'Odkrycia' },
-    { key: 'repo', label: 'Repo źródłowe' },
-  ], 'Węzły')
-  store.registerType('edge', [
-    { key: 'fromNid', label: 'Od (nodeId)', required: true },
-    { key: 'toNid', label: 'Do (nodeId)', required: true },
-    { key: 'type', label: 'Typ' },
-  ], 'Krawędzie')
-  store.registerType('content', [
-    { key: 'contentType', label: 'Typ', required: true },
-    { key: 'text', label: 'Tekst', required: true },
-    { key: 'answer', label: 'Odpowiedź' },
-  ], 'Treści')
-  store.registerType('lexicon', [
-    { key: 'term', label: 'Termin', required: true },
-    { key: 'definition', label: 'Definicja', required: true },
-    { key: 'category', label: 'Kategoria' },
-    { key: 'relation', label: 'Relacja' },
-  ], 'Leksykon')
-  store.registerType('lexNode', [
-    { key: 'nid', label: 'NodeId', required: true },
-  ], 'Powiązania term↔węzeł')
-  store.registerType('quiz', [
-    { key: 'question', label: 'Pytanie', required: true },
-    { key: 'answer', label: 'Odpowiedź', required: true },
-    { key: 'wrong1', label: 'Dystraktor 1' },
-    { key: 'wrong2', label: 'Dystraktor 2' },
-    { key: 'wrong3', label: 'Dystraktor 3' },
-    { key: 'hint', label: 'Wskazówka' },
-  ], 'Quizy')
-
+  // Tylko gameplay state — typy danych paczki rejestruje plugin-bq-loader
   store.registerType('discovery', [
     { key: 'termId', label: 'Termin', required: true },
     { key: 'hits', label: 'Odkrycia' },
     { key: 'firstSeen', label: 'Pierwsze' },
     { key: 'lastSeen', label: 'Ostatnie' },
   ], 'Odkrycia')
+
+  // Forwarder do bqLoader — konsumowany przez reader/arena przez bqHelpers (kompatybilność wstecz)
+  const bqLoader = () => (sdk.shared.getState() as any)?.bqLoader as any
+  const loadNodeContent = (treeId: string, nodeId: string) => bqLoader()?.loadNodeContent(treeId, nodeId)
+  const loadLexiconFromRepo = (treeId: string, org: string, repo: string) => bqLoader()?.loadLexiconFromRepo(treeId, org, repo)
 
   // --- shared helpers (used by reader + arena) ---
   const edgeStr = (disc: PostRecord) => {
@@ -268,211 +222,6 @@ const plugin: PluginFactory = ({ React, ui, store, sdk, icons }) => {
     )
   }
 
-  // --- GitHub source (SeedNode[] format) ---
-  type GHRepo = { name: string; description: string | null }
-  const DEFAULT_ORG = 'BQ-content'
-
-  // Rozbija jeden wpis leksykonu w starym formacie (z JSON-stringami) na płaskie rekordy:
-  // lexicon + lexNode[] + form[] + quiz?
-  const flattenLexEntry = (entry: any, treeId: string) => {
-    const data = entry.data || {}
-    const lexId = store.add('lexicon', {
-      term: data.term,
-      definition: data.definition,
-      category: data.category,
-      relation: data.relation,
-    }, { parentId: treeId }).id
-    const nodes: string[] = jparse<string[]>(String(data.nodes || '[]'), [])
-    for (const nid of nodes) store.add('lexNode', { nid }, { parentId: lexId })
-    const quiz = jparse<{ question?: string; answer?: string; wrong?: string[]; hint?: string }>(String(data.quiz || '{}'), {})
-    if (quiz.question || quiz.answer) {
-      store.add('quiz', {
-        question: quiz.question || '',
-        answer: quiz.answer || '',
-        wrong1: quiz.wrong?.[0] || '',
-        wrong2: quiz.wrong?.[1] || '',
-        wrong3: quiz.wrong?.[2] || '',
-        hint: quiz.hint || '',
-      }, { parentId: lexId })
-    }
-  }
-
-  const loadLexicon = async (base: string, tree: PostRecord, repoFilter?: string) => {
-    const allNodes = store.getPosts('node').filter(n => n.parentId === tree.id) as PostRecord[]
-    const nodes = repoFilter ? allNodes.filter(n => String(n.data.repo) === repoFilter) : allNodes
-    const fetches = nodes.map(async (n) => {
-      try {
-        const r = await fetch(`${base}/lexicon/${n.data.nodeId}.json`)
-        if (!r.ok) return 0
-        const entries = JSON.parse(await r.text()) as any[]
-        let count = 0
-        const existing = store.getPosts('lexicon').filter(x => x.parentId === tree.id) as PostRecord[]
-        const existingNames = new Set(existing.map(x => String(x.data.term)))
-        for (const l of entries) {
-          if (existingNames.has(String(l.data?.term))) continue
-          flattenLexEntry(l, tree.id)
-          existingNames.add(String(l.data?.term))
-          count++
-        }
-        return count
-      } catch { return 0 }
-    })
-    const counts = await Promise.all(fetches)
-    return counts.reduce((a, b) => a + b, 0)
-  }
-
-  // Tworzy płaskie rekordy z seed-formatu tree.json (zamiast importJSON).
-  // Obsługuje rozszerzenia: jeśli root.data.extends istnieje, dokleja do bazowego drzewa
-  // (deduplikacja po nodeId/edge-key/branch-key/relType-key). Bazę szuka po data.extId, fallback na tytuł.
-  const importTreeSeed = (seeds: any[], repo: string): { treeId: string; treeTitle: string; count: number; merged: boolean } | null => {
-    const root = seeds[0]
-    if (!root || root.type !== 'tree') return null
-    const treeTitle = String(root.data?.title || '')
-    const extendsId = String(root.data?.extends || '')
-    const ownExtId = String(root.data?.id || '')
-
-    let treeId: string
-    let merged = false
-    let count = 0
-
-    if (extendsId) {
-      const trees = store.getPosts('tree') as PostRecord[]
-      const target = trees.find(t => String(t.data.extId) === extendsId || String(t.data.title) === extendsId)
-      if (!target) { sdk.log(`Rozszerzenie wymaga bazy "${extendsId}" — załaduj ją najpierw`, 'error'); return null }
-      treeId = target.id
-      merged = true
-    } else {
-      treeId = store.add('tree', { title: treeTitle, extId: ownExtId }).id
-      count = 1
-    }
-
-    // Sety istniejących elementów do deduplikacji (puste dla nowego drzewa)
-    const childPosts = (type: string) => (store.getPosts(type) as PostRecord[]).filter(p => p.parentId === treeId)
-    const existingNodeIds = new Set(childPosts('node').map(n => String(n.data.nodeId)))
-    const existingBranchKeys = new Set(childPosts('branch').map(b => String(b.data.key)))
-    const existingRelTypeKeys = new Set(childPosts('relType').map(r => String(r.data.key)))
-    const existingEdgeKeys = new Set(childPosts('edge').map(e => `${e.data.fromNid}:${e.data.toNid}:${e.data.type || ''}`))
-
-    // Słowniki gałęzi i typów relacji (Record<key, {label,color}>)
-    for (const [field, type, existing] of [
-      ['branches', 'branch', existingBranchKeys],
-      ['relations', 'relType', existingRelTypeKeys],
-    ] as const) {
-      const dict = jparse<Record<string, { label: string; color: string }>>(String(root.data?.[field] || '{}'), {})
-      for (const [key, def] of Object.entries(dict)) {
-        if (existing.has(key)) continue
-        store.add(type, { key, label: def.label, color: def.color }, { parentId: treeId })
-        count++
-      }
-    }
-    // Krawędzie
-    for (const e of jparse<{ from: string; to: string; type?: string }[]>(String(root.data?.edges || '[]'), [])) {
-      const k = `${e.from}:${e.to}:${e.type || ''}`
-      if (existingEdgeKeys.has(k)) continue
-      store.add('edge', { fromNid: e.from, toNid: e.to, type: e.type || '' }, { parentId: treeId })
-      count++
-    }
-    // Węzły (dzieci roota) — repo na każdym węźle, żeby loadNodeContent wiedział skąd ciągnąć content
-    for (const child of (root.children || [])) {
-      if (child.type !== 'node') continue
-      const nid = String(child.data?.nodeId || '')
-      if (existingNodeIds.has(nid)) continue
-      store.add('node', { ...child.data, repo }, { parentId: treeId })
-      count++
-    }
-    return { treeId, treeTitle, count, merged }
-  }
-
-  const loadTree = async (org: string, repo: string) => {
-    try {
-      const base = `${GH_RAW}/${org}/${repo}/main`
-      const repoKey = `${org}/${repo}`
-      const treeRes = await fetch(`${base}/tree.json`)
-      if (!treeRes.ok) throw new Error(`tree.json: ${treeRes.status}`)
-      const treeSeeds = JSON.parse(await treeRes.text())
-      const imported = importTreeSeed(treeSeeds, repoKey)
-      if (!imported) { sdk.log(`${repo} — niepoprawny tree.json lub brak bazy`, 'error'); return }
-
-      const tree = store.get(imported.treeId) as PostRecord | undefined
-      if (tree) {
-        // Lexicon — przy bazie wszystkie node'y, przy rozszerzeniu tylko jego node'y (filter po repo)
-        const lexCount = await loadLexicon(base, tree, repoKey)
-        const tag = imported.merged ? `${repo} (rozszerzenie)` : repo
-        sdk.log(`${tag} — ${imported.count + lexCount} rekordów`, 'ok')
-        // Repo na drzewie tylko dla bazy — fallback dla loadNodeContent gdy node nie ma własnego repo
-        if (!imported.merged) store.update(tree.id, { repo: repoKey })
-      }
-    } catch (e) { sdk.log(String(e), 'error') }
-  }
-
-  const loadLexiconFromRepo = async (treeId: string, org: string, repo: string) => {
-    const tree = store.get(treeId)
-    if (!tree) return
-    const base = `${GH_RAW}/${org}/${repo}/main`
-    const count = await loadLexicon(base, tree)
-    sdk.log(`${repo} — ${count} nowych terminów`, 'ok')
-  }
-
-  // Lazy load content per node — wywoływany z readera przez sdk.shared.
-  // Repo bierzemy z node.data.repo (per-węzeł, ważne dla rozszerzeń), fallback na tree.data.repo.
-  const loadNodeContent = async (treeId: string, nodeId: string) => {
-    const tree = store.get(treeId)
-    if (!tree) return
-
-    const nodes = store.getPosts('node').filter(n => n.parentId === treeId) as PostRecord[]
-    const node = nodes.find(n => String(n.data.nodeId) === nodeId)
-    if (!node) return
-
-    const repo = String(node.data.repo || tree.data.repo || '')
-    if (!repo) return
-
-    // Sprawdź czy content już załadowany
-    const existing = store.getPosts('content').filter(c => c.parentId === node.id)
-    if (existing.length > 0) return
-
-    try {
-      const r = await fetch(`${GH_RAW}/${repo}/main/content/${nodeId}.json`)
-      if (!r.ok) return
-      const entries = JSON.parse(await r.text()) as any[]
-      for (const e of entries) {
-        store.add(e.type, e.data, { parentId: node.id })
-      }
-    } catch (e) { sdk.log(`Content ${nodeId}: ${e}`, 'error') }
-  }
-
-  function RepoPicker() {
-    const org = (store.useOption('bq:githubOrg') as string) || DEFAULT_ORG
-    const [repos, setRepos] = useState<GHRepo[]>([])
-    const [loading, setLoading] = useState(true)
-
-    useEffect(() => {
-      fetch(`${GH_API}/search/repositories?q=org:${org}+topic:brainquest&per_page=100`)
-        .then(r => r.ok ? r.json() : Promise.reject(r.status))
-        .then((d: { items: GHRepo[] }) => setRepos(d.items.sort((a, b) => a.name.localeCompare(b.name))))
-        .catch(e => sdk.log(`GitHub: ${e}`, 'error'))
-        .finally(() => setLoading(false))
-    }, [org])
-
-    return (
-      <ui.Page><ui.Stack>
-        <ui.Heading title="Wybierz przedmiot" subtitle="Kliknij aby rozpocząć naukę" />
-        {loading && <ui.Spinner />}
-        {repos.map(r => (
-          <ui.Card key={r.name}>
-            <ui.Row justify="between">
-              <ui.Stack>
-                <ui.Text bold>{r.description || r.name}</ui.Text>
-                <ui.Text muted size="xs">{r.name}</ui.Text>
-              </ui.Stack>
-              <ui.Button color="primary" onClick={() => loadTree(org, r.name)}>Rozpocznij</ui.Button>
-            </ui.Row>
-          </ui.Card>
-        ))}
-        {!loading && !repos.length && <ui.Text muted>Brak dostępnych przedmiotów</ui.Text>}
-      </ui.Stack></ui.Page>
-    )
-  }
-
   // Cascade cleanup: usunięcie drzewa → usuń wiszące discoveries (discovery to typ globalny, nie dziecko drzewa)
   const removeTreeWithDiscoveries = (treeId: string) => {
     const termIds = new Set(
@@ -644,7 +393,14 @@ const plugin: PluginFactory = ({ React, ui, store, sdk, icons }) => {
       if (!treeId && trees.length) useNav.setState({ treeId: trees[0].id })
     }, [treeId, trees.length])
 
-    if (!treeId && !trees.length) return <RepoPicker />
+    if (!treeId && !trees.length) return (
+      <ui.Page><ui.Stack>
+        <ui.Placeholder text="Brak załadowanych paczek wiedzy"><Package size={32} /></ui.Placeholder>
+        <ui.Button color="primary" block onClick={() => sdk.useHostStore.setState({ activeId: 'plugin-bq-loader' })}>
+          <Package size={14} /> Otwórz menedżer paczek
+        </ui.Button>
+      </ui.Stack></ui.Page>
+    )
     if (!treeId) return null
 
     return (
