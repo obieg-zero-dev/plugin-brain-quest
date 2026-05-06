@@ -4389,7 +4389,8 @@ const plugin = ({ React, ui, store, sdk, icons }) => {
   const { Award, X, Zap, BookOpen } = icons;
   store.registerType("tree", [
     { key: "title", label: "Tytuł", required: true },
-    { key: "repo", label: "Repo" }
+    { key: "repo", label: "Repo" },
+    { key: "extId", label: "ID zewnętrzne" }
   ], "Drzewa wiedzy");
   store.registerType("branch", [
     { key: "key", label: "Klucz", required: true },
@@ -4406,7 +4407,8 @@ const plugin = ({ React, ui, store, sdk, icons }) => {
     { key: "title", label: "Tytuł", required: true },
     { key: "branch", label: "Gałąź" },
     { key: "tier", label: "Poziom" },
-    { key: "hits", label: "Odkrycia" }
+    { key: "hits", label: "Odkrycia" },
+    { key: "repo", label: "Repo źródłowe" }
   ], "Węzły");
   store.registerType("edge", [
     { key: "fromNid", label: "Od (nodeId)", required: true },
@@ -4652,8 +4654,9 @@ const plugin = ({ React, ui, store, sdk, icons }) => {
       }, { parentId: lexId });
     }
   };
-  const loadLexicon = async (base, tree) => {
-    const nodes = store.getPosts("node").filter((n) => n.parentId === tree.id);
+  const loadLexicon = async (base, tree, repoFilter) => {
+    const allNodes = store.getPosts("node").filter((n) => n.parentId === tree.id);
+    const nodes = repoFilter ? allNodes.filter((n) => String(n.data.repo) === repoFilter) : allNodes;
     const fetches = nodes.map(async (n) => {
       var _a, _b;
       try {
@@ -4677,48 +4680,78 @@ const plugin = ({ React, ui, store, sdk, icons }) => {
     const counts = await Promise.all(fetches);
     return counts.reduce((a2, b) => a2 + b, 0);
   };
-  const importTreeSeed = (seeds) => {
-    var _a, _b, _c;
+  const importTreeSeed = (seeds, repo) => {
+    var _a, _b, _c, _d, _e, _f;
     const root2 = seeds[0];
     if (!root2 || root2.type !== "tree") return null;
     const treeTitle = String(((_a = root2.data) == null ? void 0 : _a.title) || "");
-    const treeId = store.add("tree", { title: treeTitle }).id;
-    let count = 1;
-    for (const [field, type] of [["branches", "branch"], ["relations", "relType"]]) {
-      const dict = jparse(String(((_b = root2.data) == null ? void 0 : _b[field]) || "{}"), {});
+    const extendsId = String(((_b = root2.data) == null ? void 0 : _b.extends) || "");
+    const ownExtId = String(((_c = root2.data) == null ? void 0 : _c.id) || "");
+    let treeId;
+    let merged = false;
+    let count = 0;
+    if (extendsId) {
+      const trees = store.getPosts("tree");
+      const target = trees.find((t) => String(t.data.extId) === extendsId || String(t.data.title) === extendsId);
+      if (!target) {
+        sdk.log(`Rozszerzenie wymaga bazy "${extendsId}" — załaduj ją najpierw`, "error");
+        return null;
+      }
+      treeId = target.id;
+      merged = true;
+    } else {
+      treeId = store.add("tree", { title: treeTitle, extId: ownExtId }).id;
+      count = 1;
+    }
+    const childPosts = (type) => store.getPosts(type).filter((p) => p.parentId === treeId);
+    const existingNodeIds = new Set(childPosts("node").map((n) => String(n.data.nodeId)));
+    const existingBranchKeys = new Set(childPosts("branch").map((b) => String(b.data.key)));
+    const existingRelTypeKeys = new Set(childPosts("relType").map((r) => String(r.data.key)));
+    const existingEdgeKeys = new Set(childPosts("edge").map((e) => `${e.data.fromNid}:${e.data.toNid}:${e.data.type || ""}`));
+    for (const [field, type, existing] of [
+      ["branches", "branch", existingBranchKeys],
+      ["relations", "relType", existingRelTypeKeys]
+    ]) {
+      const dict = jparse(String(((_d = root2.data) == null ? void 0 : _d[field]) || "{}"), {});
       for (const [key, def] of Object.entries(dict)) {
+        if (existing.has(key)) continue;
         store.add(type, { key, label: def.label, color: def.color }, { parentId: treeId });
         count++;
       }
     }
-    for (const e of jparse(String(((_c = root2.data) == null ? void 0 : _c.edges) || "[]"), [])) {
+    for (const e of jparse(String(((_e = root2.data) == null ? void 0 : _e.edges) || "[]"), [])) {
+      const k = `${e.from}:${e.to}:${e.type || ""}`;
+      if (existingEdgeKeys.has(k)) continue;
       store.add("edge", { fromNid: e.from, toNid: e.to, type: e.type || "" }, { parentId: treeId });
       count++;
     }
     for (const child of root2.children || []) {
-      if (child.type === "node") {
-        store.add("node", child.data, { parentId: treeId });
-        count++;
-      }
+      if (child.type !== "node") continue;
+      const nid = String(((_f = child.data) == null ? void 0 : _f.nodeId) || "");
+      if (existingNodeIds.has(nid)) continue;
+      store.add("node", { ...child.data, repo }, { parentId: treeId });
+      count++;
     }
-    return { treeId, treeTitle, count };
+    return { treeId, treeTitle, count, merged };
   };
   const loadTree = async (org, repo) => {
     try {
       const base = `${GH_RAW}/${org}/${repo}/main`;
+      const repoKey = `${org}/${repo}`;
       const treeRes = await fetch(`${base}/tree.json`);
       if (!treeRes.ok) throw new Error(`tree.json: ${treeRes.status}`);
       const treeSeeds = JSON.parse(await treeRes.text());
-      const imported = importTreeSeed(treeSeeds);
+      const imported = importTreeSeed(treeSeeds, repoKey);
       if (!imported) {
-        sdk.log(`${repo} — niepoprawny tree.json`, "error");
+        sdk.log(`${repo} — niepoprawny tree.json lub brak bazy`, "error");
         return;
       }
       const tree = store.get(imported.treeId);
       if (tree) {
-        const lexCount = await loadLexicon(base, tree);
-        sdk.log(`${repo} — ${imported.count + lexCount} rekordów`, "ok");
-        store.update(tree.id, { repo: `${org}/${repo}` });
+        const lexCount = await loadLexicon(base, tree, repoKey);
+        const tag = imported.merged ? `${repo} (rozszerzenie)` : repo;
+        sdk.log(`${tag} — ${imported.count + lexCount} rekordów`, "ok");
+        if (!imported.merged) store.update(tree.id, { repo: repoKey });
       }
     } catch (e) {
       sdk.log(String(e), "error");
@@ -4734,11 +4767,11 @@ const plugin = ({ React, ui, store, sdk, icons }) => {
   const loadNodeContent = async (treeId, nodeId) => {
     const tree = store.get(treeId);
     if (!tree) return;
-    const repo = String(tree.data.repo || "");
-    if (!repo) return;
     const nodes = store.getPosts("node").filter((n) => n.parentId === treeId);
     const node = nodes.find((n) => String(n.data.nodeId) === nodeId);
     if (!node) return;
+    const repo = String(node.data.repo || tree.data.repo || "");
+    if (!repo) return;
     const existing = store.getPosts("content").filter((c2) => c2.parentId === node.id);
     if (existing.length > 0) return;
     try {
