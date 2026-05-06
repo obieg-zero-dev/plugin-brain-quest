@@ -3867,18 +3867,21 @@ function CosmosGraph(props) {
   };
   const focusNid = selectedNid;
   const neighborSet = useMemo(() => {
-    if (!focusNid) return null;
-    const set2 = /* @__PURE__ */ new Set([focusNid]);
-    for (const e of visEdges) {
-      if (e.from === focusNid) set2.add(e.to);
-      if (e.to === focusNid) set2.add(e.from);
+    if (focusNid) {
+      const set2 = /* @__PURE__ */ new Set([focusNid]);
+      for (const e of visEdges) {
+        if (e.from === focusNid) set2.add(e.to);
+        if (e.to === focusNid) set2.add(e.from);
+      }
+      for (const ce of visContextEdges) {
+        if (ce.from === focusNid) set2.add(ce.to);
+        if (ce.to === focusNid) set2.add(ce.from);
+      }
+      return set2;
     }
-    for (const ce of visContextEdges) {
-      if (ce.from === focusNid) set2.add(ce.to);
-      if (ce.to === focusNid) set2.add(ce.from);
-    }
-    return set2;
-  }, [focusNid, visEdges, visContextEdges]);
+    if (highlightedNids && highlightedNids.size > 0) return highlightedNids;
+    return null;
+  }, [focusNid, visEdges, visContextEdges, highlightedNids]);
   const isNodeDimmed = (nid) => !!neighborSet && !neighborSet.has(nid);
   const isEdgeFocused = (a2, b) => !!neighborSet && (a2 === focusNid || b === focusNid);
   const isEdgeRelevant = (a2, b) => !!neighborSet && neighborSet.has(a2) && neighborSet.has(b);
@@ -4374,15 +4377,7 @@ function useBqGraphData(store, treeId, opts = {}) {
     if (!selectedMoonId) return void 0;
     return nidsByLex.get(selectedMoonId) || EMPTY_NID_SET;
   }, [selectedMoonId, nidsByLex]);
-  const relatedMoonIds = useMemo(() => {
-    if (!selectedMoonId) return void 0;
-    const myNids = nidsByLex.get(selectedMoonId) || EMPTY_NID_SET;
-    const ids = /* @__PURE__ */ new Set();
-    for (const nid of myNids) for (const l of lexsByNid.get(nid) || []) {
-      if (l.id !== selectedMoonId) ids.add(l.id);
-    }
-    return ids;
-  }, [selectedMoonId, nidsByLex, lexsByNid]);
+  const relatedMoonIds = useMemo(() => void 0, [selectedMoonId]);
   const hits = useMemo(() => {
     const m2 = {};
     for (const n of rawNodes) m2[String(n.data.nodeId)] = Number(n.data.hits) || 0;
