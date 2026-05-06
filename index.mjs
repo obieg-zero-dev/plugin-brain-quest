@@ -3356,7 +3356,6 @@ const Edge = (p) => {
         strokeWidth: p.sw,
         strokeLinecap: "round",
         strokeDasharray: p.dashed ? "4 3" : void 0,
-        shapeRendering: "crispEdges",
         style: { transition: "stroke 350ms ease-out" }
       }
     ),
@@ -3397,8 +3396,7 @@ const Orbit = (p) => /* @__PURE__ */ jsxs(Fragment, { children: [
       fill: "none",
       stroke: p.color,
       strokeOpacity: 0.35,
-      strokeDasharray: "3 5",
-      shapeRendering: "crispEdges"
+      strokeDasharray: "3 5"
     }
   ),
   /* @__PURE__ */ jsx(
@@ -3466,7 +3464,6 @@ const Sonar = (p) => /* @__PURE__ */ jsx("g", { transform: `translate(${p.x} ${p
     fill: "none",
     stroke: p.color,
     strokeWidth: SONAR.strokeWidth,
-    shapeRendering: "optimizeSpeed",
     style: {
       transformBox: "fill-box",
       transformOrigin: "center",
@@ -3611,7 +3608,6 @@ const FlashEdge = (p) => /* @__PURE__ */ jsx(
       animation: p.fresh ? "cosmos-flash 1.4s ease-out 1" : void 0,
       opacity: p.fresh ? void 0 : 0.45
     },
-    shapeRendering: "crispEdges",
     pointerEvents: "none"
   }
 );
@@ -3654,7 +3650,6 @@ const Moon = (p) => {
         fill: "none",
         stroke: ringColor,
         strokeWidth: 1.5,
-        shapeRendering: "optimizeSpeed",
         pointerEvents: "none"
       }
     ),
