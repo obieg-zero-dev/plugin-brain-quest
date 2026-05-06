@@ -3124,6 +3124,7 @@ function d3zoom() {
   };
   return zoom;
 }
+const linearZoomInterpolate = (a2, b) => (t) => new Transform(a2.k + (b.k - a2.k) * t, a2.x + (b.x - a2.x) * t, a2.y + (b.y - a2.y) * t);
 const NO_BRANCH = "_none";
 const COSMOS = {
   star: "#fde68a",
@@ -3842,7 +3843,7 @@ function CosmosGraph(props) {
     if (!svgRef.current || !gRef.current) return;
     const svgSel = select(svgRef.current);
     const gSel = select(gRef.current);
-    const zb = d3zoom().scaleExtent([ZOOM.min, ZOOM.max]).on("start", () => setPanning(true)).on("zoom", (event) => {
+    const zb = d3zoom().scaleExtent([ZOOM.min, ZOOM.max]).interpolate(linearZoomInterpolate).on("start", () => setPanning(true)).on("zoom", (event) => {
       gSel.attr("transform", event.transform.toString());
       setZoomK(event.transform.k);
     }).on("end", () => setPanning(false));
