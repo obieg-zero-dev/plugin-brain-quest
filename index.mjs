@@ -3097,7 +3097,7 @@ const computeUsedBranches = (nodes, branches) => {
     };
   });
 };
-const computeLayout = (visibleNodes, allNodes, branches) => {
+const computeLayout = (visibleNodes, allNodes, branches, edges) => {
   const countPerKeyAll = /* @__PURE__ */ new Map();
   for (const n of allNodes) {
     const k = branchOf(n);
@@ -3116,19 +3116,46 @@ const computeLayout = (visibleNodes, allNodes, branches) => {
     const parsed = parseInt(String(n.tier ?? ""), 10);
     return Number.isFinite(parsed) ? parsed : 0;
   };
-  const initialSimNodes = [];
+  const angleByNid = /* @__PURE__ */ new Map();
   for (const orbit of orbits) {
-    const allOnBranch = allNodes.filter((n) => branchOf(n) === orbit.key);
-    if (!allOnBranch.length) continue;
-    const sorted = [...allOnBranch].sort((a2, b) => {
+    const onBranch = allNodes.filter((n) => branchOf(n) === orbit.key);
+    if (!onBranch.length) continue;
+    const groups = /* @__PURE__ */ new Map();
+    for (const n of onBranch) {
+      let parentNid = null;
+      for (const e of edges) {
+        const other = e.from === n.nid ? e.to : e.to === n.nid ? e.from : null;
+        if (other && angleByNid.has(other)) {
+          parentNid = other;
+          break;
+        }
+      }
+      const grp = groups.get(parentNid) ?? [];
+      grp.push(n);
+      groups.set(parentNid, grp);
+    }
+    const orphans = (groups.get(null) ?? []).sort((a2, b) => {
       const dt = parseTier2(a2) - parseTier2(b);
       return dt !== 0 ? dt : a2.nid.localeCompare(b.nid);
     });
-    const slotByNid = new Map(sorted.map((n, idx) => [n.nid, idx]));
-    const total = Math.max(sorted.length, 1);
+    const orphanTotal = Math.max(orphans.length, 1);
+    orphans.forEach((n, i) => angleByNid.set(n.nid, i / orphanTotal * Math.PI * 2 - Math.PI / 2));
+    groups.delete(null);
+    for (const [parentNid, children2] of groups) {
+      const parentAng = angleByNid.get(parentNid);
+      children2.sort((a2, b) => a2.nid.localeCompare(b.nid));
+      const total = children2.length;
+      const arc = Math.PI / 8;
+      children2.forEach((c2, i) => {
+        const offset = total > 1 ? (i - (total - 1) / 2) / (total - 1) * arc : 0;
+        angleByNid.set(c2.nid, parentAng + offset);
+      });
+    }
+  }
+  const initialSimNodes = [];
+  for (const orbit of orbits) {
     for (const n of visibleNodes.filter((x2) => branchOf(x2) === orbit.key)) {
-      const j = slotByNid.get(n.nid) ?? 0;
-      const a2 = j / total * Math.PI * 2 - Math.PI / 2;
+      const a2 = angleByNid.get(n.nid) ?? -Math.PI / 2;
       initialSimNodes.push({
         id: n.nid,
         x: LAYOUT.cx + Math.cos(a2) * orbit.radius,
@@ -3585,8 +3612,8 @@ function CosmosGraph(props) {
   const visMoons = useMemo(() => gating ? moons.filter((m2) => visible.has(m2.nodeId)) : moons, [gating, moons, visible]);
   const visFlashPairs = useMemo(() => flashPairs.filter((p) => visible.has(p.fromNid) && visible.has(p.toNid)), [flashPairs, visible]);
   const { initialSimNodes, orbits } = useMemo(
-    () => computeLayout(visNodes, nodes, branches),
-    [visNodes, nodes, branches]
+    () => computeLayout(visNodes, nodes, branches, visEdges),
+    [visNodes, nodes, branches, visEdges]
   );
   const branchColorByNid = useMemo(() => {
     const orbitColors = new Map(orbits.map((o) => [o.key, o.color]));
