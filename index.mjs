@@ -3414,8 +3414,6 @@ const Orbit = (p) => /* @__PURE__ */ jsxs(Fragment, { children: [
   )
 ] });
 const CastShadow = (p) => {
-  const fallbackId = useId();
-  const prefix = p.instanceId ?? `cg-${fallbackId.replace(/[^a-zA-Z0-9_-]/g, "")}`;
   const len = p.length ?? 110;
   const dx = p.planetX - p.sunX, dy = p.planetY - p.sunY;
   const d = Math.hypot(dx, dy) || 1;
@@ -3427,33 +3425,15 @@ const CastShadow = (p) => {
   const x2 = p.planetX - px * w0, y2 = p.planetY - py * w0;
   const x3 = p.planetX - px * w1 + ux * len, y3 = p.planetY - py * w1 + uy * len;
   const x4 = p.planetX + px * w1 + ux * len, y4 = p.planetY + py * w1 + uy * len;
-  const gradId = `${prefix}-shadow-${safeIdAtom(p.id)}`;
-  return /* @__PURE__ */ jsxs(Fragment, { children: [
-    /* @__PURE__ */ jsxs(
-      "linearGradient",
-      {
-        id: gradId,
-        gradientUnits: "userSpaceOnUse",
-        x1: p.planetX,
-        y1: p.planetY,
-        x2: p.planetX + ux * len,
-        y2: p.planetY + uy * len,
-        children: [
-          /* @__PURE__ */ jsx("stop", { offset: "0%", stopColor: "#000", stopOpacity: 0.32 }),
-          /* @__PURE__ */ jsx("stop", { offset: "100%", stopColor: "#000", stopOpacity: 0 })
-        ]
-      }
-    ),
-    /* @__PURE__ */ jsx(
-      "polygon",
-      {
-        points: `${x1},${y1} ${x2},${y2} ${x3},${y3} ${x4},${y4}`,
-        fill: `url(#${gradId})`,
-        pointerEvents: "none",
-        shapeRendering: "optimizeSpeed"
-      }
-    )
-  ] });
+  return /* @__PURE__ */ jsx(
+    "polygon",
+    {
+      points: `${x1},${y1} ${x2},${y2} ${x3},${y3} ${x4},${y4}`,
+      fill: "rgba(0,0,0,0.22)",
+      pointerEvents: "none",
+      shapeRendering: "optimizeSpeed"
+    }
+  );
 };
 const Sonar = (p) => /* @__PURE__ */ jsx("g", { transform: `translate(${p.x} ${p.y})`, style: { pointerEvents: "none" }, children: Array.from({ length: SONAR.rings }, (_, i) => /* @__PURE__ */ jsx(
   "circle",
@@ -3993,8 +3973,6 @@ function CosmosGraph(props) {
     return /* @__PURE__ */ jsx(
       CastShadow,
       {
-        id: n.nid,
-        instanceId,
         sunX: cx,
         sunY: cy,
         planetX: p.x,
@@ -4003,7 +3981,7 @@ function CosmosGraph(props) {
       },
       n.nid
     );
-  }) }), [visNodes, positions, baseRByNid, cx, cy, frontier, instanceId]);
+  }) }), [visNodes, positions, baseRByNid, cx, cy, frontier]);
   const sonarLayer = useMemo(() => {
     if (!selectedNid) return null;
     const p = positions.get(selectedNid);
