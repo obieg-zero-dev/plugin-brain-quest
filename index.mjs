@@ -3178,9 +3178,9 @@ const MOON = {
 };
 const SONAR = {
   rings: 2,
-  duration: 6,
+  duration: 5,
   scaleFrom: 1,
-  scaleTo: 9,
+  scaleTo: 5,
   opacityFrom: 0.55,
   strokeWidth: 2.2
 };
