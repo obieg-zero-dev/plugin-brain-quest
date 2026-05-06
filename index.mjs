@@ -3140,18 +3140,19 @@ const COSMOS = {
 const DAISY_TOKENS = /* @__PURE__ */ new Set(["primary", "secondary", "accent", "info", "success", "warning", "error", "neutral"]);
 const PALETTE = ["primary", "accent", "success", "warning", "secondary", "info", "error", "neutral"];
 const SIM = {
-  radial: 0.45,
-  collide: 26,
+  radial: 0.9,
+  // silne ciąganie do orbity (było 0.45 — za słabe vs linkForce)
+  collide: 20,
+  // promień kolizji bliższy faktycznym rozmiarom planet (było 26 — kolidowały na wyrost)
   linkDistance: 80,
-  linkStrength: 0.18,
-  charge: -22,
+  linkStrength: 0.04,
+  // bardzo łagodne (było 0.18 — przy 5 dzieciach 5× ciągnęło z orbity)
+  charge: -8,
+  // delikatne odpychanie (było -22 — wypychało planety z orbity)
   alpha: 0.85,
-  // start z lekko niższym dyskomfortem (było 1.0) — krótszy "rozsyp" przy starcie
   alphaDecay: 0.07,
-  // szybsze osiadanie (~45 ticków zamiast 80)
   alphaMin: 1e-3,
   velocityDecay: 0.55
-  // mniej wobble po osiadaniu
 };
 const ZOOM = { min: 0.5, max: 5, resetMs: 350 };
 const STATE = {
