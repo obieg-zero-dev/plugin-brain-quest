@@ -3550,7 +3550,6 @@ function CosmosGraph(props) {
     nodes,
     moons = [],
     edges = [],
-    contextEdges = [],
     branches,
     relTypes = [],
     selectedNid = null,
@@ -3608,7 +3607,6 @@ function CosmosGraph(props) {
   }, [gating, nodes, edges, hits, rootNidProp]);
   const visNodes = useMemo(() => gating ? nodes.filter((n) => visible.has(n.nid)) : nodes, [gating, nodes, visible]);
   const visEdges = useMemo(() => gating ? edges.filter((e) => visible.has(e.from) && visible.has(e.to)) : edges, [gating, edges, visible]);
-  const visContextEdges = useMemo(() => gating ? contextEdges.filter((e) => visible.has(e.from) && visible.has(e.to)) : contextEdges, [gating, contextEdges, visible]);
   const visMoons = useMemo(() => gating ? moons.filter((m2) => visible.has(m2.nodeId)) : moons, [gating, moons, visible]);
   const visFlashPairs = useMemo(() => flashPairs.filter((p) => visible.has(p.fromNid) && visible.has(p.toNid)), [flashPairs, visible]);
   const { initialSimNodes, orbits } = useMemo(
@@ -3748,15 +3746,11 @@ function CosmosGraph(props) {
         if (e.from === focusNid) set2.add(e.to);
         if (e.to === focusNid) set2.add(e.from);
       }
-      for (const ce of visContextEdges) {
-        if (ce.from === focusNid) set2.add(ce.to);
-        if (ce.to === focusNid) set2.add(ce.from);
-      }
       return set2;
     }
     if (highlightedNids && highlightedNids.size > 0) return highlightedNids;
     return null;
-  }, [focusNid, visEdges, visContextEdges, highlightedNids]);
+  }, [focusNid, visEdges, highlightedNids]);
   const isNodeDimmed = (nid) => !!neighborSet && !neighborSet.has(nid);
   const isEdgeFocused = (a2, b) => !!neighborSet && (a2 === focusNid || b === focusNid);
   const isEdgeRelevant = (a2, b) => !!neighborSet && neighborSet.has(a2) && neighborSet.has(b);
@@ -3809,37 +3803,6 @@ function CosmosGraph(props) {
       }
     ) }, `e-${i}`);
   }) }), [visEdges, positions, neighborSet, focusNid, z, baseRByNid, branchColorByNid, relColorByKey]);
-  const contextLayer = useMemo(() => /* @__PURE__ */ jsx(Fragment, { children: visContextEdges.map((ce, i) => {
-    if (!neighborSet && ce.count < 2) return null;
-    const a2 = positions.get(ce.from), b = positions.get(ce.to);
-    if (!a2 || !b) return null;
-    const def = relColorByKey.get(ce.relation);
-    const relColor = (def == null ? void 0 : def.color) || COSMOS.fallback;
-    const relLabel = (def == null ? void 0 : def.label) || ce.relation;
-    const strength = Math.min(0.4 + ce.count * 0.15, 0.9);
-    const d = edgeDim(
-      isEdgeFocused(ce.from, ce.to),
-      isEdgeRelevant(ce.from, ce.to),
-      1 - Math.min(0.4 + strength * 0.25, 0.65),
-      // idle — sweet spot 0.35-0.6 (35-60% color), match progression-style
-      1 - Math.min(0.5 + strength * 0.4, 0.9),
-      // focused
-      0.5
-      // relevant
-    );
-    return /* @__PURE__ */ jsx("g", { children: /* @__PURE__ */ jsx(
-      Edge,
-      {
-        a: a2,
-        b,
-        color: relColor,
-        dim: d,
-        sw: 1 + Math.min(ce.count - 1, 2) * 0.4,
-        label: !!neighborSet && isEdgeFocused(ce.from, ce.to) ? { text: `${relLabel}${ce.count > 1 ? ` ·${ce.count}` : ""}`, color: relColor, size: 8, weight: 600 } : void 0,
-        zoomFactor: z
-      }
-    ) }, `ctx-${i}`);
-  }) }), [visContextEdges, positions, neighborSet, focusNid, z, relColorByKey]);
   const flashLayer = useMemo(() => {
     if (!visFlashPairs.length) return null;
     return /* @__PURE__ */ jsx(Fragment, { children: visFlashPairs.map((fp, i) => {
@@ -4062,7 +4025,6 @@ function CosmosGraph(props) {
             setPlatesLayer,
             orbitsLayer,
             /* @__PURE__ */ jsx(Star, { cx, cy }),
-            contextLayer,
             edgesLayer,
             flashLayer,
             highlightLines,
@@ -4134,8 +4096,6 @@ const catColor = (c2) => {
   if (!k) return COSMOS_TOKENS.tok(COSMOS_TOKENS.PALETTE[0]);
   return COSMOS_TOKENS.tok(COSMOS_TOKENS.PALETTE[COSMOS_TOKENS.hashStr(k) % COSMOS_TOKENS.PALETTE.length]);
 };
-const MAX_CONTEXT_NODES_PER_TERM = 6;
-const EDGE_KEY_SEP = "\0";
 const EMPTY_NID_SET = /* @__PURE__ */ new Set();
 const parseTier = (n) => {
   const t = n.data.tier;
@@ -4216,40 +4176,6 @@ function useBqGraphData(store, treeId, opts = {}) {
     }
     return out;
   }, [rawLexicons, nidsByLex, discoveredTermIds]);
-  const contextEdges = useMemo(() => {
-    const map = /* @__PURE__ */ new Map();
-    for (const lex of rawLexicons) {
-      if (discoveredTermIds && !discoveredTermIds.has(lex.id)) continue;
-      const nidsArr = Array.from(nidsByLex.get(lex.id) || []);
-      if (nidsArr.length < 2 || nidsArr.length > MAX_CONTEXT_NODES_PER_TERM) continue;
-      const rel = String(lex.data.relation || "inne");
-      for (let i = 0; i < nidsArr.length; i++) {
-        for (let j = i + 1; j < nidsArr.length; j++) {
-          const [a2, b] = [nidsArr[i], nidsArr[j]].sort();
-          const key = `${a2}${EDGE_KEY_SEP}${b}`;
-          let entry = map.get(key);
-          if (!entry) {
-            entry = { from: a2, to: b, rels: /* @__PURE__ */ new Map() };
-            map.set(key, entry);
-          }
-          entry.rels.set(rel, (entry.rels.get(rel) || 0) + 1);
-        }
-      }
-    }
-    const out = [];
-    for (const { from, to, rels } of map.values()) {
-      let best = "inne", bestCount = 0, total = 0;
-      for (const [r, c2] of rels) {
-        total += c2;
-        if (c2 > bestCount) {
-          best = r;
-          bestCount = c2;
-        }
-      }
-      out.push({ from, to, relation: best, count: total });
-    }
-    return out;
-  }, [rawLexicons, nidsByLex, discoveredTermIds]);
   const highlightedNids = useMemo(() => {
     if (!selectedMoonId) return void 0;
     return nidsByLex.get(selectedMoonId) || EMPTY_NID_SET;
@@ -4300,7 +4226,6 @@ function useBqGraphData(store, treeId, opts = {}) {
     nodes,
     moons,
     edges,
-    contextEdges,
     branches,
     relTypes,
     highlightedNids,
@@ -4425,7 +4350,6 @@ const plugin = ({ React, ui, store, sdk, icons }) => {
         nodes: data.nodes,
         moons: data.moons,
         edges: data.edges,
-        contextEdges: data.contextEdges,
         branches: data.branches,
         relTypes: data.relTypes,
         selectedNid: data.selectedNid,

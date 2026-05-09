@@ -125,7 +125,6 @@ const plugin: PluginFactory = ({ React, ui, store, sdk, icons }) => {
         nodes={data.nodes}
         moons={data.moons}
         edges={data.edges}
-        contextEdges={data.contextEdges}
         branches={data.branches}
         relTypes={data.relTypes}
         selectedNid={data.selectedNid}
